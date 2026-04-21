@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  js:
+    name: Typecheck + build (JS/TS)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck all JS/TS packages
+        run: pnpm --filter '!@trashflow/ml' -r typecheck
+
+      - name: Build all JS/TS apps
+        run: pnpm --filter '!@trashflow/ml' -r build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-ci-only
+
+  python:
+    name: Pytest (apps/ml)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/ml
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install deps (requirements.txt is CI-friendly)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest httpx
+
+      - name: Run tests (stub mode — no model weights needed)
+        run: pytest -ra
+        env:
+          ML_ALLOW_STUB: 'true'
+
+  lint-sql:
+    name: Validate SQL migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start Postgres with PostGIS
+        run: |
+          docker run -d --name pg -p 5432:5432 \
+            -e POSTGRES_PASSWORD=postgres \
+            postgis/postgis:15-3.4
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            docker exec pg pg_isready -U postgres && break
+            sleep 1
+          done
+
+      - name: Apply migrations in order
+        run: |
+          for f in supabase/migrations/*.sql; do
+            echo "=== Applying $f ==="
+            docker exec -i pg psql -U postgres < "$f"
+          done
+
+      - name: Apply seed
+        run: docker exec -i pg psql -U postgres < supabase/seed.sql
