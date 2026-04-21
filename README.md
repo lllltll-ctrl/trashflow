@@ -31,12 +31,14 @@ pnpm db:types
 
 ## Docs
 
+- **[docs/SETUP.md](docs/SETUP.md) — first-time setup: Supabase + Vercel + Railway + env vars. Start here.**
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — system design
 - [docs/DATABASE.md](docs/DATABASE.md) — schema + RLS policies
 - [docs/API.md](docs/API.md) — endpoints
 - [docs/ROADMAP.md](docs/ROADMAP.md) — MVP vs roadmap
 - [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) — 5-minute pitch script
 - [docs/COMMUNITY_QUESTIONS.md](docs/COMMUNITY_QUESTIONS.md) — questions for Pryluky hromada rep
+- [docs/ML_TRAINING.md](docs/ML_TRAINING.md) — YOLOv8 fine-tune workflow (Colab notebook at [apps/ml/notebooks/finetune_yolov8.ipynb](apps/ml/notebooks/finetune_yolov8.ipynb))
 
 ## Quality bar
 
