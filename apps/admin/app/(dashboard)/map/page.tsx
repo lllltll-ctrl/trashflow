@@ -1,25 +1,20 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@trashflow/ui';
+import { AdminMapLoader } from '@/components/admin-map-loader';
+import { listComplaints } from '@/lib/queries';
 
-export const metadata = { title: 'Тепломапа · TrashFlow Admin' };
+export const metadata = { title: 'Мапа · TrashFlow Admin' };
 
-export default function MapPage() {
+export default async function MapPage() {
+  const complaints = await listComplaints(undefined, 500);
+
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-2xl font-bold">Тепломапа скарг</h1>
+        <h1 className="text-2xl font-bold">Мапа скарг</h1>
+        <p className="text-sm text-muted-foreground">
+          Геодані останніх 500 скарг. Переключіть на «Тепломапу» щоб побачити проблемні райони.
+        </p>
       </header>
-      <Card>
-        <CardHeader>
-          <CardTitle>Leaflet heatmap</CardTitle>
-          <CardDescription>
-            TODO: react-leaflet + leaflet.heat, 30-денне вікно за замовчуванням, перемикач на
-            hex-grid (RPC complaint_heatmap) для агрегованого вигляду.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Реалізується агентом <code>frontend-admin</code> день 4 плану.
-        </CardContent>
-      </Card>
+      <AdminMapLoader complaints={complaints} />
     </div>
   );
 }

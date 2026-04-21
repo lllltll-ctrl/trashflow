@@ -1,25 +1,20 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@trashflow/ui';
+import { ComplaintsTable } from '@/components/complaints-table';
+import { listComplaints } from '@/lib/queries';
 
 export const metadata = { title: 'Скарги · TrashFlow Admin' };
 
-export default function ComplaintsPage() {
+export default async function ComplaintsPage() {
+  const complaints = await listComplaints(undefined, 200);
+
   return (
     <div className="space-y-4">
       <header>
         <h1 className="text-2xl font-bold">Скарги</h1>
+        <p className="text-sm text-muted-foreground">
+          Весь трафік за останні 200 скарг. Фільтруйте за статусом і категорією.
+        </p>
       </header>
-      <Card>
-        <CardHeader>
-          <CardTitle>Таблиця скарг</CardTitle>
-          <CardDescription>
-            TODO: TanStack Table, server-side pagination, фільтри за статусом і категорією,
-            дії: призначити бригаду, позначити розв&apos;язаною. Usunąти скаргу — лише admin.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Реалізується агентом <code>frontend-admin</code> день 4 плану.
-        </CardContent>
-      </Card>
+      <ComplaintsTable initial={complaints} />
     </div>
   );
 }
