@@ -19,6 +19,26 @@ export const WASTE_CATEGORIES: ReadonlyArray<WasteCategoryId> = [
   'hazardous',
 ] as const;
 
+export const WASTE_CATEGORY_LABELS_UA: Record<WasteCategoryId, string> = {
+  plastic: 'Пластик',
+  paper: 'Папір і картон',
+  glass: 'Скло',
+  metal: 'Метал',
+  hazardous: 'Небезпечні відходи',
+};
+
+export const WASTE_CATEGORY_ICONS: Record<WasteCategoryId, string> = {
+  plastic: '🥤',
+  paper: '📰',
+  glass: '🍾',
+  metal: '🥫',
+  hazardous: '🔋',
+};
+
+export function isWasteCategory(value: string): value is WasteCategoryId {
+  return (WASTE_CATEGORIES as ReadonlyArray<string>).includes(value);
+}
+
 export type ComplaintStatus =
   | 'new'
   | 'assigned'
