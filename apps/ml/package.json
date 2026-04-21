@@ -1,0 +1,13 @@
+{
+  "name": "@trashflow/ml",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "poetry run uvicorn app.main:app --reload --port 8000 --host 0.0.0.0",
+    "build": "echo \"ml: built by Docker — no JS build step\"",
+    "test": "poetry run pytest",
+    "lint": "poetry run ruff check app tests",
+    "typecheck": "poetry run mypy app",
+    "clean": "rm -rf .pytest_cache .ruff_cache .mypy_cache __pycache__"
+  }
+}

@@ -1,0 +1,12 @@
+@import '@trashflow/ui/globals.css';
+
+html,
+body {
+  height: 100%;
+}
+
+/* Safe-area padding for PWA on iOS notch */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
