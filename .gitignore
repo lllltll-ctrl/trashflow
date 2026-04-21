@@ -1,0 +1,78 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+.turbo/
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
+supabase/functions/_shared/
+**/.supabase/
+
+# Python (apps/ml)
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# ML artifacts
+apps/ml/app/models/*.pt
+apps/ml/app/models/*.onnx
+!apps/ml/app/models/.gitkeep
+datasets/
+runs/
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Vercel
+.vercel/
+
+# Misc
+*.tgz
+.cache/

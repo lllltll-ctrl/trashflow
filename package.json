@@ -1,0 +1,38 @@
+{
+  "name": "trashflow",
+  "private": true,
+  "version": "0.0.0",
+  "description": "TrashFlow — civic-tech SaaS for Ukrainian hromadas to manage waste (Pryluky pilot)",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "db:types": "supabase gen types typescript --local > packages/db/types.gen.ts",
+    "db:reset": "supabase db reset",
+    "db:push": "supabase db push",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,yaml,yml}\""
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "prettier": "^3.4.2",
+    "supabase": "^2.6.8",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "supabase",
+      "unrs-resolver",
+      "sharp",
+      "esbuild"
+    ]
+  }
+}
