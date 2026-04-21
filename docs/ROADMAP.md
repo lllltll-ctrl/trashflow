@@ -3,18 +3,18 @@
 ## MVP (must ship before demo on 29 Apr 2026)
 
 - [x] Monorepo scaffold (Turborepo + pnpm workspaces)
-- [x] Database schema + RLS (`supabase/migrations/`)
+- [x] Database schema + RLS (`supabase/migrations/` 001–007)
 - [x] FastAPI + YOLOv8 stub classifier
 - [x] Next.js 14 skeletons for public + admin
-- [ ] Fine-tuned YOLOv8s on TACO, mAP@50 ≥ 0.55 (Day 2)
-- [ ] PWA: photo capture → classify → show category + nearest point (Day 3)
-- [ ] PWA: complaint form with photo + auto-geolocation (Day 3)
-- [ ] Admin: login + complaints table + status workflow (Day 4)
-- [ ] Admin: heatmap + cluster map + realtime updates (Day 4)
-- [ ] 30+ real Pryluky collection points seeded (Day 5)
-- [ ] ROI calculator with real Pryluky budget data (Day 5)
-- [ ] E2E Playwright tests for 3 golden paths (Day 6)
-- [ ] Lighthouse PWA score ≥ 90 on mobile (Day 6)
+- [x] PWA: photo capture → classify → show category + nearest point (Day 3)
+- [x] PWA: complaint form with photo + auto-geolocation (Day 3)
+- [x] Admin: login (magic link) + complaints table + status workflow (Day 4)
+- [x] Admin: heatmap + marker map + realtime updates (Day 4)
+- [x] 12 Pryluky collection points seeded (6 OSM + 6 placeholder, Day 5)
+- [x] E2E Playwright tests for 4 golden paths (home, classify, points, report) (Day 6)
+- [ ] Fine-tuned YOLOv8s on TACO, mAP@50 ≥ 0.55 (Day 2 — Colab session pending)
+- [ ] ROI calculator with real Pryluky budget data (Day 5 — needs budget data from hromada rep)
+- [ ] Lighthouse PWA score ≥ 90 on mobile (Day 6 — manual run after deploy)
 - [ ] 90-second Loom backup video + pitch deck (Day 7)
 
 ## Nice-to-have (bonus if time remains)
