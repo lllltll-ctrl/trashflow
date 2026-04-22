@@ -17,14 +17,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
+
+      - name: Install pnpm
+        run: npm install -g pnpm@10.33.0
 
       - name: Install
         run: pnpm install --frozen-lockfile
@@ -45,13 +43,11 @@ jobs:
     needs: js
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
+      - name: Install pnpm
+        run: npm install -g pnpm@10.33.0
       - name: Install deps
         run: pnpm install --frozen-lockfile
       - name: Install Playwright browsers
@@ -117,13 +113,24 @@ jobs:
       - name: Bootstrap Supabase-specific schemas we rely on
         run: |
           # Vanilla postgis image doesn't ship the `auth`, `storage` schemas
-          # (those are provisioned by Supabase itself). Create just enough
-          # for migrations that reference auth.users / storage.buckets to apply.
+          # (those are provisioned by Supabase itself). Stub just enough
+          # structure + helper functions for every migration to apply.
           docker exec -i pg psql -U postgres <<'SQL'
           create schema if not exists auth;
           create table if not exists auth.users (
               id uuid primary key default gen_random_uuid()
           );
+          -- Supabase Auth helpers referenced by our RLS policies.
+          create or replace function auth.uid() returns uuid language sql stable as $fn$
+              select null::uuid
+          $fn$;
+          create or replace function auth.role() returns text language sql stable as $fn$
+              select 'anon'::text
+          $fn$;
+          create or replace function auth.jwt() returns jsonb language sql stable as $fn$
+              select '{}'::jsonb
+          $fn$;
+
           create schema if not exists storage;
           create table if not exists storage.buckets (
               id text primary key,
