@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
+import { Suspense } from 'react';
 import { Toaster } from 'sonner';
+import { AnalyticsProvider } from '@/components/analytics-provider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -25,7 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="uk" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
-        {children}
+        <Suspense fallback={null}>
+          <AnalyticsProvider>{children}</AnalyticsProvider>
+        </Suspense>
         <Toaster position="top-center" richColors closeButton />
       </body>
     </html>

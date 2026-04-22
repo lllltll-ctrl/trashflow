@@ -25,12 +25,12 @@ Each should finish with `Success`.
 1. Supabase Dashboard → **Authentication → Users → Add user**.
 2. Email: your real address. Check **Auto Confirm User**.
 3. Copy the generated UUID (`id` column) from the users table.
-4. Run in SQL Editor (replace `<your-uuid>`):
+4. Run in SQL Editor (paste the UUID **without angle brackets** — the `< >` below are just placeholders, not part of the value):
 
 ```sql
 insert into public.profiles (id, community_id, role, full_name)
 values (
-    '<your-uuid>',
+    'paste-the-uuid-here-no-angle-brackets',
     '00000000-0000-0000-0000-000000000001',
     'admin',
     'Maksym Lytvynenko'
