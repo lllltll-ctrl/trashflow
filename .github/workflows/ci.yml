@@ -145,12 +145,22 @@ jobs:
           );
           SQL
 
-      - name: Apply migrations in order
+      - name: Apply migrations + seed in logical order
         run: |
-          for f in supabase/migrations/*.sql; do
-            echo "=== Applying $f ==="
-            docker exec -i pg psql -U postgres --set ON_ERROR_STOP=1 < "$f"
-          done
-
-      - name: Apply seed
-        run: docker exec -i pg psql -U postgres --set ON_ERROR_STOP=1 < supabase/seed.sql
+          # Data migrations (006 real points, 008 demo complaints) reference
+          # the Pryluky community UUID, which is created by seed.sql — so we
+          # interleave: DDL first, seed the community + categories, then data.
+          apply() {
+            local path="$1"
+            echo "=== Applying $path ==="
+            docker exec -i pg psql -U postgres --set ON_ERROR_STOP=1 < "$path"
+          }
+          apply supabase/migrations/20260421000001_init.sql
+          apply supabase/migrations/20260421000002_rls.sql
+          apply supabase/migrations/20260421000003_rpc.sql
+          apply supabase/migrations/20260421000004_public_read_points.sql
+          apply supabase/migrations/20260421000005_anon_complaints.sql
+          apply supabase/migrations/20260421000007_storage_buckets.sql
+          apply supabase/seed.sql
+          apply supabase/migrations/20260421000006_seed_pryluky_osm.sql
+          apply supabase/migrations/20260421000008_demo_complaints.sql
