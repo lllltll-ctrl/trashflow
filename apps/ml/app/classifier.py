@@ -26,9 +26,12 @@ class Classifier:
         self._loaded: bool = False
 
     def load(self) -> None:
-        """Load weights from disk. Falls back to stub mode if file is missing."""
+        """Load weights from disk, fetching them from ML_WEIGHTS_URL first if absent."""
         if self._loaded:
             return
+
+        if not settings.model_path.exists() and settings.weights_url is not None:
+            self._fetch_weights()
 
         if not settings.model_path.exists():
             if not settings.allow_stub:
@@ -46,6 +49,34 @@ class Classifier:
         self._model = YOLO(str(settings.model_path))
         self._version = settings.model_path.stem
         self._loaded = True
+
+    @staticmethod
+    def _fetch_weights() -> None:
+        """Download weights from settings.weights_url to settings.model_path.
+
+        Falls back to leaving the file absent (so stub mode kicks in) if the
+        download fails — we never want a flaky network to kill the service.
+        """
+        import urllib.request  # noqa: PLC0415 — stdlib, no startup cost worth hoisting
+        import shutil
+        from tempfile import NamedTemporaryFile
+
+        url = str(settings.weights_url)
+        target = settings.model_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+
+        logger.info("Downloading weights from %s", url)
+        try:
+            with urllib.request.urlopen(url, timeout=60) as response:  # noqa: S310 — URL is config-provided
+                with NamedTemporaryFile(dir=target.parent, delete=False) as tmp:
+                    shutil.copyfileobj(response, tmp)
+                    tmp_path = tmp.name
+            shutil.move(tmp_path, target)
+            logger.info(
+                "Weights cached at %s (%d bytes)", target, target.stat().st_size
+            )
+        except Exception as err:  # noqa: BLE001 — we intentionally swallow to allow stub fallback
+            logger.error("Failed to download weights: %s", err)
 
     @property
     def is_stub(self) -> bool:

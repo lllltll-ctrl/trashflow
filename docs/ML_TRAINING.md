@@ -58,10 +58,20 @@ Expected runtime: ~30 minutes on Colab T4.
 
 Railway doesn't persist the workspace between deploys. Two options:
 
-1. **S3 fetch on startup** (recommended) — upload weights to Supabase Storage (public bucket `ml-artifacts`), modify `classifier.py` to download on first load.
-2. **Railway Volume** — attach a volume to `/data`, set `ML_MODEL_PATH=/data/trash_yolov8s.pt`, upload once via `railway run rsync`.
+**Decision: fetch weights from Supabase Storage on startup** (simpler, works in CI, generous free-tier bandwidth, no Volume plumbing).
 
-Pre-build decision: option 1 (S3 via Supabase Storage). Simpler, works in CI, and Supabase bandwidth is generous on free tier.
+Implemented in `apps/ml/app/classifier.py::_fetch_weights`: on first `load()`, if the local `ML_MODEL_PATH` is missing and `ML_WEIGHTS_URL` is set, the service downloads the file via `urllib.request.urlopen`, atomically moves it into place, and continues. A failed download is logged but non-fatal — stub fallback still kicks in.
+
+### Configuring for Railway
+
+Set on the Railway service:
+```
+ML_WEIGHTS_URL=https://<supabase-project>.supabase.co/storage/v1/object/public/ml-artifacts/trash_yolov8s.pt
+ML_ALLOW_STUB=false
+ML_API_KEY=<32-byte random hex>
+```
+
+No Volume needed — Railway's ephemeral disk just caches the weights between container restarts. If Railway recycles the container, the next startup re-downloads (~22 MB, a few seconds on the internal network).
 
 ## Fallback behavior
 

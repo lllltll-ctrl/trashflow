@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,7 +13,14 @@ class Settings(BaseSettings):
 
     model_path: Path = Field(
         default=Path("app/models/trash_yolov8s.pt"),
-        description="Path to fine-tuned YOLOv8 weights.",
+        description="Local path where fine-tuned YOLOv8 weights are cached.",
+    )
+    weights_url: HttpUrl | None = Field(
+        default=None,
+        description=(
+            "Optional HTTPS URL to download weights from on startup if the local file is "
+            "absent. Typically a Supabase Storage public URL to trash_yolov8s.pt."
+        ),
     )
     allow_stub: bool = Field(
         default=True,
