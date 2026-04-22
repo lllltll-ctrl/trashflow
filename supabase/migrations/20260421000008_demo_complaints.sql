@@ -43,7 +43,7 @@ values
      'hazardous',
      'DEMO: Дружби — будівельне сміття і старі акумулятори',
      'in_progress', now() - interval '2 days', null),
-    ('00260000-0000-0000-0000-000000000001', null,
+    ('00000000-0000-0000-0000-000000000001', null,
      st_makepoint(32.4040, 50.5980)::geography,
      array['https://picsum.photos/seed/pr5/640/480'],
      'plastic',
