@@ -1,25 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, Spinner } from '@trashflow/ui';
 import { createClient } from '@/lib/supabase/client';
 
 export function LoginForm() {
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next') ?? '/';
+  const authError = searchParams.get('error');
+
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    if (authError) toast.error(`Помилка входу: ${authError}`);
+  }, [authError]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!email.trim()) return;
     setSending(true);
     const supabase = createClient();
+    const callbackUrl = new URL('/auth/callback', window.location.origin);
+    if (next !== '/') callbackUrl.searchParams.set('next', next);
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
-        emailRedirectTo: `${window.location.origin}/`,
+        emailRedirectTo: callbackUrl.toString(),
       },
     });
     setSending(false);

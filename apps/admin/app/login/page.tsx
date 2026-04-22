@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { LoginForm } from '@/components/login-form';
 
 export const metadata = { title: 'Вхід · TrashFlow' };
@@ -13,7 +14,9 @@ export default function LoginPage() {
             Доступ надається адміністратором громади.
           </p>
         </div>
-        <LoginForm />
+        <Suspense fallback={null}>
+          <LoginForm />
+        </Suspense>
       </div>
     </main>
   );
