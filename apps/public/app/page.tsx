@@ -117,9 +117,8 @@ export default async function HomePage() {
             Civic tech для громад України
           </span>
           <h1 className="text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
-            Чистіша <span className="text-primary">громада</span>
-            <br className="hidden sm:block" />
-            починається з одного фото.
+            Чистіша <span className="text-primary">громада</span>{' '}
+            <span className="block sm:inline">починається з одного фото.</span>
           </h1>
           <p className="max-w-xl text-base text-muted-foreground md:text-lg">
             Сортуй сміття правильно, повідомляй про стихійні звалища і знаходь найближчі пункти
