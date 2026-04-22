@@ -16,6 +16,8 @@ const withPWA = withPWAInit({
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@trashflow/ui', '@trashflow/db'],
+  // Lint runs as a separate CI job / local `pnpm lint` — don't couple it to build.
+  eslint: { ignoreDuringBuilds: true },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '*.supabase.co' },

@@ -114,12 +114,36 @@ jobs:
             sleep 1
           done
 
+      - name: Bootstrap Supabase-specific schemas we rely on
+        run: |
+          # Vanilla postgis image doesn't ship the `auth`, `storage` schemas
+          # (those are provisioned by Supabase itself). Create just enough
+          # for migrations that reference auth.users / storage.buckets to apply.
+          docker exec -i pg psql -U postgres <<'SQL'
+          create schema if not exists auth;
+          create table if not exists auth.users (
+              id uuid primary key default gen_random_uuid()
+          );
+          create schema if not exists storage;
+          create table if not exists storage.buckets (
+              id text primary key,
+              name text,
+              public boolean default false,
+              file_size_limit bigint,
+              allowed_mime_types text[]
+          );
+          create table if not exists storage.objects (
+              id uuid primary key default gen_random_uuid(),
+              bucket_id text references storage.buckets(id)
+          );
+          SQL
+
       - name: Apply migrations in order
         run: |
           for f in supabase/migrations/*.sql; do
             echo "=== Applying $f ==="
-            docker exec -i pg psql -U postgres < "$f"
+            docker exec -i pg psql -U postgres --set ON_ERROR_STOP=1 < "$f"
           done
 
       - name: Apply seed
-        run: docker exec -i pg psql -U postgres < supabase/seed.sql
+        run: docker exec -i pg psql -U postgres --set ON_ERROR_STOP=1 < supabase/seed.sql
