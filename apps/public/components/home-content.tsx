@@ -652,8 +652,6 @@ export function HomeContent({ stats }: { stats: HomeStats }) {
       </div>
 
       {/* ── Desktop HeroBand ──────────────────────────────────────────── */}
-      <DesktopHeroBand communityName={stats.communityName} />
-
       {/* Digest carousel — full width on both layouts */}
       <DigestCarousel />
 
