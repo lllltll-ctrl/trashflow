@@ -19,7 +19,8 @@ type Props = {
 export function PageHead({ title, backHref = '/', right }: Props) {
   const router = useRouter();
   return (
-    <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-3 md:px-6">
+    /* On desktop the top navbar handles navigation — hide the mobile back-button row. */
+    <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-3 md:px-6 lg:hidden">
       <div className="flex items-center gap-3">
         {backHref ? (
           <Link
