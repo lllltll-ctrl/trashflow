@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { useCallback, useRef, useState } from 'react';
 import {
+  AlertTriangle,
   ArrowRight,
   Camera,
   Check,
   CheckCircle2,
-  Crosshair,
   Home,
   Plus,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Spinner } from '@trashflow/ui';
@@ -21,11 +22,14 @@ import {
 import { compressImage } from '@/lib/compress';
 import {
   getBrowserLocation,
+  reportFullBin,
   submitComplaint,
   type SubmittedComplaint,
 } from '@/lib/complaints-client';
 import { palette, categoryStyle } from '@/components/design/tokens';
+import { LocationPicker } from '@/components/location-picker';
 
+type ReportType = 'illegal_dump' | 'full_bin';
 type Stage = 'idle' | 'locating' | 'compressing' | 'submitting' | 'done';
 
 const QUICK_TAGS = [
@@ -36,6 +40,7 @@ const QUICK_TAGS = [
 ];
 
 export function ReportForm() {
+  const [reportType, setReportType] = useState<ReportType | null>(null);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [stage, setStage] = useState<Stage>('idle');
   const [preview, setPreview] = useState<string | null>(null);
@@ -44,6 +49,7 @@ export function ReportForm() {
   const [category, setCategory] = useState<WasteCategoryId | null>(null);
   const [description, setDescription] = useState('');
   const [submitted, setSubmitted] = useState<SubmittedComplaint | null>(null);
+  const [binReported, setBinReported] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = useCallback(async (file: File) => {
@@ -57,8 +63,7 @@ export function ReportForm() {
       setPhotoFile(compressed);
       setPreview(URL.createObjectURL(compressed));
       setStage('idle');
-    } catch (err) {
-      console.error('compress error', err);
+    } catch {
       toast.error('Не вдалося обробити фото.');
       setStage('idle');
     }
@@ -80,25 +85,43 @@ export function ReportForm() {
     if (!photoFile || !location) return;
     setStage('submitting');
     try {
-      const result = await submitComplaint({
-        photo: photoFile,
-        lat: location.lat,
-        lng: location.lng,
-        description: description.trim() || undefined,
-        category: category ?? undefined,
-      });
-      setSubmitted(result);
-      setStage('done');
-      toast.success('Скаргу прийнято. Диспетчер уже її бачить.');
+      if (reportType === 'full_bin') {
+        await reportFullBin({
+          lat: location.lat,
+          lng: location.lng,
+          description: description.trim() || undefined,
+        });
+        setBinReported(true);
+        setStage('done');
+        toast.success('Бак відмічено як повний. Дякуємо!');
+      } else {
+        const result = await submitComplaint({
+          photo: photoFile,
+          lat: location.lat,
+          lng: location.lng,
+          description: description.trim() || undefined,
+          category: category ?? undefined,
+        });
+        setSubmitted(result);
+        setStage('done');
+        toast.success('Скаргу прийнято. Диспетчер уже її бачить.');
+      }
     } catch (err) {
-      console.error('submit error', err);
       toast.error(err instanceof Error ? err.message : 'Помилка надсилання.');
       setStage('idle');
     }
-  }, [photoFile, location, description, category]);
+  }, [photoFile, location, description, category, reportType]);
 
+  if (stage === 'done' && binReported) {
+    return <BinReported />;
+  }
   if (stage === 'done' && submitted) {
     return <ReportSubmitted complaint={submitted} />;
+  }
+
+  // Step 0: type selection
+  if (reportType === null) {
+    return <TypeSelector onSelect={setReportType} />;
   }
 
   const canNext = step === 1 ? photoFile !== null : step === 2 ? location !== null : true;
@@ -106,6 +129,39 @@ export function ReportForm() {
 
   return (
     <div className="tf-fade-slide flex flex-col gap-4">
+      {/* Back to type selector */}
+      <button
+        type="button"
+        onClick={() => {
+          setReportType(null);
+          setStep(1);
+          setPreview(null);
+          setPhotoFile(null);
+          setLocation(null);
+          setDescription('');
+          setCategory(null);
+        }}
+        className="self-start text-[12px] font-semibold text-[color:var(--ink-mute)]"
+      >
+        ← Змінити тип
+      </button>
+
+      {/* Type badge */}
+      <div
+        className="inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-[11.5px] font-semibold"
+        style={
+          reportType === 'full_bin'
+            ? { background: 'rgba(234,179,8,0.12)', color: '#713F12' }
+            : { background: 'rgba(220,38,38,0.08)', color: '#7F1D1D' }
+        }
+      >
+        {reportType === 'full_bin' ? (
+          <><Trash2 className="size-3.5" strokeWidth={2.2} /> Повний бак</>
+        ) : (
+          <><AlertTriangle className="size-3.5" strokeWidth={2.2} /> Несанкціоноване звалище</>
+        )}
+      </div>
+
       {/* Progress */}
       <div
         className="flex items-center gap-3 rounded-[14px] px-4 py-3"
@@ -150,15 +206,13 @@ export function ReportForm() {
               background: preview
                 ? 'transparent'
                 : 'repeating-linear-gradient(45deg, rgba(14,58,35,0.05) 0 10px, rgba(14,58,35,0.02) 10px 20px)',
-              border: preview
-                ? 'none'
-                : '2px dashed rgba(14,58,35,0.2)',
+              border: preview ? 'none' : '2px dashed rgba(14,58,35,0.2)',
               color: preview ? '#fff' : 'var(--ink-mute)',
             }}
           >
             {preview ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={preview} alt="Фото звалища" className="size-full object-cover" />
+              <img src={preview} alt="Фото" className="size-full object-cover" />
             ) : stage === 'compressing' ? (
               <Spinner label="Обробляю фото…" />
             ) : (
@@ -192,139 +246,86 @@ export function ReportForm() {
       {step === 2 && (
         <div className="tf-fade-slide flex flex-col gap-3">
           <StepLabel n={2} label="Локація" />
-          <div
-            className="relative h-[260px] overflow-hidden rounded-[24px] border border-[rgba(14,58,35,0.08)]"
-            style={{
-              background: `radial-gradient(ellipse 60% 40% at 30% 30%, rgba(111,211,154,0.35) 0%, transparent 70%), linear-gradient(165deg, #E8F5EC 0%, #F4F9F1 100%)`,
-            }}
-          >
-            <svg
-              viewBox="0 0 400 260"
-              className="absolute inset-0 size-full"
-              preserveAspectRatio="none"
-            >
-              <g stroke="rgba(14,58,35,0.12)" strokeWidth="1.5" fill="none">
-                <path d="M-10 90 Q 100 70 200 100 T 410 120" />
-                <path d="M-10 160 Q 150 140 260 170 T 410 190" />
-                <path d="M80 -10 Q 100 100 110 270" />
-                <path d="M230 -10 Q 240 100 255 270" />
-              </g>
-            </svg>
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full">
-              <div
-                className="grid size-11 place-items-center rounded-[50%_50%_50%_2px] border-[3px] border-white"
-                style={{
-                  background: location ? 'var(--green-light)' : palette.yellow,
-                  transform: 'rotate(-45deg)',
-                  boxShadow: '0 8px 20px -4px rgba(0,0,0,0.35)',
-                }}
-              >
-                <div
-                  className="size-2.5 rounded-full bg-white"
-                  style={{ transform: 'rotate(45deg)' }}
-                />
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={fetchLocation}
-              disabled={stage === 'locating'}
-              className="absolute inset-x-3.5 bottom-3.5 flex items-center justify-center gap-2 rounded-[14px] bg-white/95 px-4 py-3 text-[13px] font-bold text-[color:var(--green-deep)] backdrop-blur"
-            >
-              {stage === 'locating' ? (
-                <Spinner label="Визначаю…" />
-              ) : location ? (
-                <>
-                  <Check className="size-4" strokeWidth={2.4} /> Локацію зафіксовано
-                </>
-              ) : (
-                <>
-                  <Crosshair className="size-4" strokeWidth={2} /> Використати моє місце
-                </>
-              )}
-            </button>
-          </div>
-
-          {location && (
-            <div
-              className="tf-fade-slide flex items-center gap-3 rounded-[22px] border border-[rgba(14,58,35,0.06)] bg-white px-4 py-3"
-              style={{ boxShadow: 'var(--tf-shadow-sm)' }}
-            >
-              <div className="size-2 rounded-full bg-[color:var(--green-light)]" />
-              <div
-                className="text-xs tracking-[0.08em] text-[color:var(--ink-soft)]"
-                style={{ fontFamily: 'var(--font-mono)' }}
-              >
-                {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-              </div>
-              <div className="ml-auto text-xs text-[color:var(--ink-mute)]">±5м</div>
-            </div>
-          )}
+          <LocationPicker
+            value={location}
+            onChange={setLocation}
+            geolocate={fetchLocation}
+            geolocating={stage === 'locating'}
+          />
         </div>
       )}
 
-      {/* STEP 3 — description + category + summary */}
+      {/* STEP 3 — description + summary */}
       {step === 3 && (
         <div className="tf-fade-slide flex flex-col gap-4">
           <StepLabel n={3} label="Опис" />
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value.slice(0, 500))}
-            placeholder="Мішки з будівельним сміттям біля трансформатора…"
+            placeholder={
+              reportType === 'full_bin'
+                ? 'Бак переповнений, сміття поруч із баком…'
+                : 'Мішки з будівельним сміттям біля трансформатора…'
+            }
             rows={5}
             className="w-full resize-none rounded-[20px] border border-[rgba(14,58,35,0.1)] bg-white p-4 text-sm leading-[1.5] text-[color:var(--ink)] outline-none"
           />
-          <div className="flex flex-wrap gap-2">
-            {QUICK_TAGS.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                onClick={() =>
-                  setDescription((prev) =>
-                    prev ? `${prev}, ${tag.toLowerCase()}` : tag,
-                  )
-                }
-                className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(14,58,35,0.15)] bg-transparent px-3 py-2 text-[12.5px] font-semibold text-[color:var(--ink-soft)]"
-              >
-                <Plus className="size-3" strokeWidth={2.4} />
-                {tag}
-              </button>
-            ))}
-          </div>
 
-          <div>
-            <div
-              className="mb-2 text-[11px] uppercase tracking-[0.18em] text-[color:var(--ink-mute)]"
-              style={{ fontFamily: 'var(--font-mono)' }}
-            >
-              Категорія (необов'язково)
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {WASTE_CATEGORIES.map((cat) => {
-                const s = categoryStyle[cat];
-                const active = category === cat;
-                return (
+          {reportType === 'illegal_dump' && (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {QUICK_TAGS.map((tag) => (
                   <button
-                    key={cat}
+                    key={tag}
                     type="button"
-                    onClick={() => setCategory((prev) => (prev === cat ? null : cat))}
-                    className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors"
-                    style={{
-                      background: active ? s.color : 'rgba(14,58,35,0.05)',
-                      color: active ? '#fff' : 'var(--ink-soft)',
-                      borderColor: active ? s.color : 'transparent',
-                    }}
+                    onClick={() =>
+                      setDescription((prev) =>
+                        prev ? `${prev}, ${tag.toLowerCase()}` : tag,
+                      )
+                    }
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(14,58,35,0.15)] bg-transparent px-3 py-2 text-[12.5px] font-semibold text-[color:var(--ink-soft)]"
                   >
-                    <span
-                      className="inline-block size-2 rounded-full"
-                      style={{ background: active ? '#fff' : s.color }}
-                    />
-                    {WASTE_CATEGORY_LABELS_UA[cat]}
+                    <Plus className="size-3" strokeWidth={2.4} />
+                    {tag}
                   </button>
-                );
-              })}
-            </div>
-          </div>
+                ))}
+              </div>
+
+              <div>
+                <div
+                  className="mb-2 text-[11px] uppercase tracking-[0.18em] text-[color:var(--ink-mute)]"
+                  style={{ fontFamily: 'var(--font-mono)' }}
+                >
+                  Категорія (необов'язково)
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {WASTE_CATEGORIES.map((cat) => {
+                    const s = categoryStyle[cat];
+                    const active = category === cat;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setCategory((prev) => (prev === cat ? null : cat))}
+                        className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors"
+                        style={{
+                          background: active ? s.color : 'rgba(14,58,35,0.05)',
+                          color: active ? '#fff' : 'var(--ink-soft)',
+                          borderColor: active ? s.color : 'transparent',
+                        }}
+                      >
+                        <span
+                          className="inline-block size-2 rounded-full"
+                          style={{ background: active ? '#fff' : s.color }}
+                        />
+                        {WASTE_CATEGORY_LABELS_UA[cat]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Summary */}
           <div
@@ -350,7 +351,7 @@ export function ReportForm() {
               )}
               <div className="min-w-0 flex-1">
                 <div className="text-[13px] font-semibold text-[color:var(--ink)]">
-                  Фото додано
+                  {reportType === 'full_bin' ? 'Повний бак' : 'Фото додано'}
                 </div>
                 <div
                   className="mt-0.5 text-[11.5px] text-[color:var(--ink-mute)]"
@@ -395,10 +396,75 @@ export function ReportForm() {
           </>
         ) : (
           <>
-            Надіслати
+            {reportType === 'full_bin' ? 'Відзначити бак' : 'Надіслати'}
             <ArrowRight className="size-[18px]" strokeWidth={2.2} />
           </>
         )}
+      </button>
+    </div>
+  );
+}
+
+function TypeSelector({ onSelect }: { onSelect: (t: ReportType) => void }) {
+  return (
+    <div className="tf-fade-slide flex flex-col gap-4">
+      <div
+        className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--ink-mute)]"
+        style={{ fontFamily: 'var(--font-mono)' }}
+      >
+        Що ви побачили?
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onSelect('illegal_dump')}
+        className="flex items-start gap-4 rounded-[22px] border bg-white p-5 text-left transition-transform hover:-translate-y-0.5"
+        style={{
+          borderColor: 'rgba(220,38,38,0.2)',
+          background: 'linear-gradient(165deg, rgba(220,38,38,0.04) 0%, #fff 100%)',
+          boxShadow: 'var(--tf-shadow-sm)',
+        }}
+      >
+        <div
+          className="grid size-12 shrink-0 place-items-center rounded-[14px]"
+          style={{ background: 'rgba(220,38,38,0.08)' }}
+        >
+          <AlertTriangle className="size-6 text-red-600" strokeWidth={1.8} />
+        </div>
+        <div>
+          <div className="text-[16px] font-bold tracking-[-0.01em] text-[color:var(--green-deep)]">
+            Несанкціоноване звалище
+          </div>
+          <p className="mt-1 text-[12.5px] leading-[1.5] text-[color:var(--ink-mute)]">
+            Купа сміття, будівельні відходи, стихійне звалище — попадає до диспетчера як скарга.
+          </p>
+        </div>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onSelect('full_bin')}
+        className="flex items-start gap-4 rounded-[22px] border bg-white p-5 text-left transition-transform hover:-translate-y-0.5"
+        style={{
+          borderColor: 'rgba(234,179,8,0.25)',
+          background: 'linear-gradient(165deg, rgba(234,179,8,0.05) 0%, #fff 100%)',
+          boxShadow: 'var(--tf-shadow-sm)',
+        }}
+      >
+        <div
+          className="grid size-12 shrink-0 place-items-center rounded-[14px]"
+          style={{ background: 'rgba(234,179,8,0.1)' }}
+        >
+          <Trash2 className="size-6 text-yellow-600" strokeWidth={1.8} />
+        </div>
+        <div>
+          <div className="text-[16px] font-bold tracking-[-0.01em] text-[color:var(--green-deep)]">
+            Повний бак на вулиці
+          </div>
+          <p className="mt-1 text-[12.5px] leading-[1.5] text-[color:var(--ink-mute)]">
+            Вуличний контейнер переповнений — система відмічає бак і передає маршрутизатору.
+          </p>
+        </div>
       </button>
     </div>
   );
@@ -411,6 +477,40 @@ function StepLabel({ n, label }: { n: number; label: string }) {
       style={{ fontFamily: 'var(--font-mono)' }}
     >
       {n} · {label}
+    </div>
+  );
+}
+
+function BinReported() {
+  return (
+    <div className="tf-fade-slide grid flex-1 place-items-center px-5 py-10">
+      <div className="max-w-[320px] text-center">
+        <div
+          className="mx-auto mb-6 grid size-24 place-items-center rounded-full"
+          style={{
+            background: 'linear-gradient(165deg, #EAB308, #CA8A04)',
+            boxShadow: '0 14px 40px -10px rgba(202,138,4,0.4)',
+          }}
+        >
+          <Trash2 className="size-11 text-white" strokeWidth={1.8} />
+        </div>
+        <div
+          className="text-[32px] font-normal tracking-[-0.03em] text-[color:var(--green-deep)]"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          Бак відмічено
+        </div>
+        <p className="mt-2 text-[13px] leading-[1.5] text-[color:var(--ink-mute)]">
+          Дякуємо! Маршрутизатор врахує цей бак у найближчому рейсі.
+        </p>
+        <Link
+          href="/"
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-[18px] bg-[color:var(--green-pale)] px-[18px] py-3 text-sm font-semibold text-[color:var(--green-deep)]"
+        >
+          <Home className="size-4" strokeWidth={2} />
+          На головну
+        </Link>
+      </div>
     </div>
   );
 }

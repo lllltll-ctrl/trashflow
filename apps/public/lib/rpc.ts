@@ -1,5 +1,15 @@
 import { clientEnv } from './env';
 
+export type BinCounts = {
+  mixed: number;
+  glass: number;
+  plastic: number;
+  paper: number;
+  organic: number;
+};
+
+export type PointType = 'collection' | 'dump' | 'recycling';
+
 export type PointNearby = {
   id: string;
   name: string;
@@ -8,6 +18,8 @@ export type PointNearby = {
   schedule: Record<string, string> | null;
   is_buyback: boolean;
   buyback_info: string | null;
+  containers: BinCounts | null;
+  point_type: PointType;
   lat: number;
   lng: number;
   distance_m: number;

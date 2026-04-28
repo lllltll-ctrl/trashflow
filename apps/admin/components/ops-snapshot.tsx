@@ -79,14 +79,12 @@ export function OpsSnapshotCards({ snapshot }: { snapshot: OpsSnapshot }) {
           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
             <Legend color="#16a34a" label={`×0.5 сортувальник (${snapshot.households.sorted})`} />
             <Legend color="#ca8a04" label={`×1.0 базовий (${snapshot.households.standard})`} />
-            <Legend color="#dc2626" label={`×1.5 без застосунку (${snapshot.households.unscanned})`} />
           </div>
           <div className="flex items-start gap-2 rounded-md bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
             <TrendingUp className="mt-0.5 size-3.5 shrink-0 text-primary" />
             <span>
-              Чим більше частка ×0.5, тим чистіший потік сміття на полігон. У Treviso (Італія) ця
-              стратегія за 15 років підняла рівень сортування з 27% до 85%. Наша мета на 2-й рік
-              пілота — 35% «зеленого» тарифу.
+              Базовий тариф — однаковий для всіх. Хто сортує — платить вдвічі менше (×0.5).
+              У Treviso (Італія) така стратегія за 15 років підняла рівень сортування з 27% до 85%.
             </span>
           </div>
         </CardContent>
@@ -134,13 +132,11 @@ function Tile({
 function TierBar({ households }: { households: OpsSnapshot['households'] }) {
   const total = households.total || 1;
   const sortedPct = (households.sorted / total) * 100;
-  const standardPct = (households.standard / total) * 100;
-  const unscannedPct = (households.unscanned / total) * 100;
+  const standardPct = Math.max(0, 100 - sortedPct);
   return (
     <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
       <div style={{ width: `${sortedPct}%`, background: '#16a34a' }} />
       <div style={{ width: `${standardPct}%`, background: '#ca8a04' }} />
-      <div style={{ width: `${unscannedPct}%`, background: '#dc2626' }} />
     </div>
   );
 }

@@ -114,6 +114,37 @@ export async function submitComplaint(draft: ComplaintDraft): Promise<SubmittedC
   });
 }
 
+export async function reportFullBin(opts: {
+  lat: number;
+  lng: number;
+  description?: string;
+}): Promise<{ binId: string; distanceM: number }> {
+  const SLUG = clientEnv.NEXT_PUBLIC_DEFAULT_COMMUNITY_SLUG ?? 'pryluky';
+  const url = `${clientEnv.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/report_full_bin`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      apikey: clientEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${clientEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      p_lat: opts.lat,
+      p_lng: opts.lng,
+      p_description: opts.description ?? null,
+      p_community_slug: SLUG,
+    }),
+  });
+  if (!response.ok) {
+    const msg = await response.text().catch(() => '');
+    throw new Error(`Не вдалося відзначити бак (${response.status}): ${msg.slice(0, 160)}`);
+  }
+  const rows = (await response.json()) as Array<{ bin_id: string; distance_m: number }>;
+  const row = rows[0];
+  if (!row) throw new Error('Сервер не повернув підтвердження');
+  return { binId: row.bin_id, distanceM: row.distance_m };
+}
+
 export async function getBrowserLocation(): Promise<{ lat: number; lng: number }> {
   if (!('geolocation' in navigator)) {
     throw new Error('Геолокація недоступна на цьому пристрої.');

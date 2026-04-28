@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CalendarClock, Home, ListChecks, LineChart, LogOut, Map, MapPin, Route } from 'lucide-react';
+import { CalendarClock, Home, ListChecks, LogOut, Map, MapPin, MessageCircle, Route } from 'lucide-react';
 import { signOutAction } from '@/app/actions';
 import { getCurrentProfile } from '@/lib/queries';
 
@@ -10,7 +10,7 @@ const navItems = [
   { href: '/routes' as const, label: 'Маршрути', icon: Route },
   { href: '/points' as const, label: 'Точки збору', icon: MapPin },
   { href: '/schedule' as const, label: 'Графік вивозу', icon: CalendarClock },
-  { href: '/analytics' as const, label: 'Аналітика', icon: LineChart },
+  { href: '/support' as const, label: 'Підтримка', icon: MessageCircle },
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

@@ -3,6 +3,7 @@ import { Fraunces, IBM_Plex_Mono } from 'next/font/google';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 import { AnalyticsProvider } from '@/components/analytics-provider';
+import { AuthProvider } from '@/lib/auth-context';
 import './globals.css';
 
 const fraunces = Fraunces({
@@ -51,10 +52,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${fraunces.variable} ${plexMono.variable}`}
     >
       <body className="min-h-screen bg-background font-sans antialiased">
-        <Suspense fallback={null}>
-          <AnalyticsProvider>{children}</AnalyticsProvider>
-        </Suspense>
-        <Toaster position="top-center" richColors closeButton />
+        <AuthProvider>
+          <Suspense fallback={null}>
+            <AnalyticsProvider>{children}</AnalyticsProvider>
+          </Suspense>
+          <Toaster position="top-center" richColors closeButton />
+        </AuthProvider>
       </body>
     </html>
   );

@@ -41,6 +41,7 @@ export type MarketplaceListItem = {
   description: string | null;
   category: MarketplaceCategory;
   contactName: string;
+  photoUrl: string | null;
   createdAt: string;
   expiresAt: string;
 };
@@ -106,6 +107,7 @@ export async function postMarketplaceItem(input: {
   category: MarketplaceCategory;
   contactName: string;
   contactPhone: string;
+  photoUrl: string | null;
 }): Promise<{ id: string; editToken: string }> {
   const res = await fetch(`${BASE}/rest/v1/rpc/marketplace_post`, {
     method: 'POST',
@@ -116,6 +118,7 @@ export async function postMarketplaceItem(input: {
       p_category: input.category,
       p_contact_name: input.contactName,
       p_contact_phone: input.contactPhone,
+      p_photo_url: input.photoUrl,
       p_community_slug: SLUG,
     }),
   });
@@ -149,7 +152,54 @@ function rowToList(row: Record<string, unknown>): MarketplaceListItem {
     description: (row.description as string) ?? null,
     category: row.category as MarketplaceCategory,
     contactName: row.contact_name as string,
+    photoUrl: (row.photo_url as string) ?? null,
     createdAt: row.created_at as string,
     expiresAt: row.expires_at as string,
   };
+}
+
+/**
+ * Upload a photo to the public 'marketplace-photos' bucket. Returns the
+ * publicly-accessible URL. Caller is responsible for compressing the file
+ * (see lib/compress) before passing it in — bucket caps at 5 MB.
+ */
+export async function uploadMarketplacePhoto(file: File): Promise<string> {
+  const ext = inferExtension(file);
+  const filename = `${cryptoUuid()}.${ext}`;
+  const url = `${BASE}/storage/v1/object/marketplace-photos/${filename}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      apikey: KEY,
+      Authorization: `Bearer ${KEY}`,
+      'Content-Type': file.type || 'image/jpeg',
+      'x-upsert': 'false',
+      'cache-control': '3600',
+    },
+    body: file,
+  });
+  if (!res.ok) {
+    throw new Error(`Завантаження не вдалося: ${res.status} ${await res.text()}`);
+  }
+  return `${BASE}/storage/v1/object/public/marketplace-photos/${filename}`;
+}
+
+function inferExtension(file: File): string {
+  if (file.type.includes('png')) return 'png';
+  if (file.type.includes('webp')) return 'webp';
+  return 'jpg';
+}
+
+function cryptoUuid(): string {
+  // crypto.randomUUID is available in all modern browsers we target.
+  // Fallback for ancient ones is a Math.random hex (not RFC compliant but
+  // collision-safe enough for our anonymous bucket).
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return Array.from({ length: 8 }, () =>
+    Math.floor(Math.random() * 0xffff)
+      .toString(16)
+      .padStart(4, '0'),
+  ).join('');
 }

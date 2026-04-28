@@ -132,8 +132,9 @@ export async function getOpsSnapshot(): Promise<OpsSnapshot> {
     households: {
       total: hRows.length,
       sorted: hRows.filter((h) => h.pricing_tier === 'sorted').length,
-      standard: hRows.filter((h) => h.pricing_tier === 'standard').length,
-      unscanned: hRows.filter((h) => h.pricing_tier === 'unscanned').length,
+      // standard + unscanned both map to the base-rate tier now
+      standard: hRows.filter((h) => h.pricing_tier !== 'sorted').length,
+      unscanned: 0,
     },
   };
 }

@@ -49,6 +49,21 @@ export function MarketplaceDetail({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Photo (if any) */}
+      {item.photoUrl && (
+        <div
+          className="overflow-hidden rounded-[24px] border border-[rgba(14,58,35,0.06)]"
+          style={{ boxShadow: 'var(--tf-shadow-sm)' }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={item.photoUrl}
+            alt={item.title}
+            className="aspect-[4/3] w-full object-cover"
+          />
+        </div>
+      )}
+
       {/* Hero card */}
       <div
         className="rounded-[24px] border bg-white p-5"

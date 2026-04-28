@@ -1,17 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, Check, Copy, Loader2 } from 'lucide-react';
+import { ArrowRight, Camera, Check, Copy, Image as ImageIcon, Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   CATEGORY_ICONS,
   CATEGORY_LABELS_UA,
   CATEGORY_ORDER,
   postMarketplaceItem,
+  uploadMarketplacePhoto,
   type MarketplaceCategory,
 } from '@/lib/marketplace';
+import { compressImage } from '@/lib/compress';
 import { palette } from '@/components/design/tokens';
 
 type Submitted = { id: string; editToken: string };
@@ -22,20 +24,54 @@ export function MarketplaceForm() {
   const [category, setCategory] = useState<MarketplaceCategory>('other');
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [submitted, setSubmitted] = useState<Submitted | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  const handlePhoto = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Потрібне зображення');
+      return;
+    }
+    setPhotoBusy(true);
+    try {
+      const compressed = await compressImage(file);
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
+      setPhotoFile(compressed);
+      setPhotoPreview(URL.createObjectURL(compressed));
+    } catch (err) {
+      toast.error('Не вдалося обробити фото');
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const clearPhoto = () => {
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    if (photoInputRef.current) photoInputRef.current.value = '';
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
+      let photoUrl: string | null = null;
+      if (photoFile) {
+        photoUrl = await uploadMarketplacePhoto(photoFile);
+      }
       const res = await postMarketplaceItem({
         title: title.trim(),
         description: description.trim(),
         category,
         contactName: contactName.trim(),
         contactPhone: contactPhone.trim(),
+        photoUrl,
       });
       setSubmitted(res);
       toast.success('Оголошення опубліковано');
@@ -55,6 +91,66 @@ export function MarketplaceForm() {
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handlePhoto(file);
+        }}
+      />
+
+      <Field label="Фото (необовʼязково)" hint="Допоможе сусіду одразу зрозуміти що саме віддаєш">
+        {photoPreview ? (
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[18px]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={photoPreview} alt="Фото товару" className="size-full object-cover" />
+            <button
+              type="button"
+              onClick={clearPhoto}
+              className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-white/95 text-[color:var(--green-deep)] shadow"
+              aria-label="Видалити фото"
+            >
+              <X className="size-4" strokeWidth={2.4} />
+            </button>
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              disabled={photoBusy}
+              className="absolute bottom-2 left-2 right-2 inline-flex items-center justify-center gap-1.5 rounded-[12px] bg-white/95 px-3 py-2 text-[12px] font-bold text-[color:var(--green-deep)]"
+            >
+              {photoBusy ? <Loader2 className="size-3.5 animate-spin" /> : <ImageIcon className="size-3.5" />}
+              Замінити фото
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => photoInputRef.current?.click()}
+            disabled={photoBusy}
+            className="flex w-full flex-col items-center justify-center gap-2 rounded-[18px] border-2 border-dashed py-7"
+            style={{
+              borderColor: 'rgba(14,58,35,0.18)',
+              background:
+                'repeating-linear-gradient(45deg, rgba(14,58,35,0.04) 0 10px, rgba(14,58,35,0.01) 10px 20px)',
+              color: 'var(--ink-mute)',
+            }}
+          >
+            {photoBusy ? (
+              <Loader2 className="size-7 animate-spin text-[color:var(--green-light)]" />
+            ) : (
+              <Camera className="size-7 text-[color:var(--green-light)]" strokeWidth={1.8} />
+            )}
+            <span className="text-[12.5px] font-semibold">
+              {photoBusy ? 'Стискаю…' : 'Додати фото'}
+            </span>
+          </button>
+        )}
+      </Field>
+
       <Field label="Що віддаєш?">
         <input
           required

@@ -100,12 +100,22 @@ function ItemCard({ item }: { item: MarketplaceListItem }) {
       className="flex items-start gap-3 rounded-[20px] border border-[rgba(14,58,35,0.06)] bg-white p-3.5 transition-transform hover:-translate-y-0.5"
       style={{ boxShadow: 'var(--tf-shadow-sm)' }}
     >
-      <div
-        className="grid size-12 shrink-0 place-items-center rounded-[14px] text-2xl"
-        style={{ background: 'var(--green-pale)' }}
-      >
-        {CATEGORY_ICONS[item.category]}
-      </div>
+      {item.photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={item.photoUrl}
+          alt={item.title}
+          loading="lazy"
+          className="size-16 shrink-0 rounded-[14px] object-cover"
+        />
+      ) : (
+        <div
+          className="grid size-16 shrink-0 place-items-center rounded-[14px] text-2xl"
+          style={{ background: 'var(--green-pale)' }}
+        >
+          {CATEGORY_ICONS[item.category]}
+        </div>
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
           <div className="truncate text-[15px] font-bold tracking-[-0.01em] text-[color:var(--green-deep)]">
