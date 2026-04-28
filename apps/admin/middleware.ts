@@ -41,6 +41,27 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Role gate: only dispatcher/admin may use this dashboard. Residents who
+  // happen to have a Supabase session must be bounced to /login with an error.
+  // TODO(perf): cache role in a JWT custom claim so we don't query per hit.
+  // TODO(types): drop the cast after `pnpm exec supabase gen types typescript --linked`.
+  if (user && !isAuthRoute) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const profilesTable = supabase.from('profiles') as any;
+    const { data: profile } = (await profilesTable
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()) as { data: { role?: string } | null };
+    const role = profile?.role;
+    if (role !== 'dispatcher' && role !== 'admin') {
+      await supabase.auth.signOut();
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = '/login';
+      loginUrl.searchParams.set('error', 'forbidden_role');
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
   return response;
 }
 

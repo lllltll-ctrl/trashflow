@@ -31,7 +31,7 @@ export function PointsMap({
       center={[center.lat, center.lng]}
       zoom={14}
       scrollWheelZoom={false}
-      className="h-80 w-full rounded-lg"
+      className="h-full w-full"
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

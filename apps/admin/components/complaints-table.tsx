@@ -1,11 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { ImageOff, X } from 'lucide-react';
-import { Badge, Button, Card, CardContent } from '@trashflow/ui';
+import { ChevronLeft, ChevronRight, ImageOff, X } from 'lucide-react';
+import { Badge, Button, Card, CardContent, buttonVariants } from '@trashflow/ui';
 import {
   WASTE_CATEGORIES,
   WASTE_CATEGORY_ICONS,
@@ -14,7 +15,8 @@ import {
   type WasteCategoryId,
 } from '@trashflow/db';
 import { createClient } from '@/lib/supabase/client';
-import type { Complaint } from '@/lib/types';
+import { statusToLabel, statusToVariant } from '@/lib/complaints-utils';
+import type { Complaint, Crew } from '@/lib/types';
 
 const STATUS_OPTIONS: Array<{ value: ComplaintStatus | 'all'; label: string }> = [
   { value: 'all', label: 'Усі' },
@@ -25,12 +27,30 @@ const STATUS_OPTIONS: Array<{ value: ComplaintStatus | 'all'; label: string }> =
   { value: 'rejected', label: 'Відхилено' },
 ];
 
-export function ComplaintsTable({ initial }: { initial: Complaint[] }) {
+export function ComplaintsTable({
+  initial,
+  crews = [],
+  page = 1,
+  pageSize = initial.length,
+  totalPages = 1,
+}: {
+  initial: Complaint[];
+  crews?: Crew[];
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
+}) {
   const [rows, setRows] = useState<Complaint[]>(initial);
   const [statusFilter, setStatusFilter] = useState<ComplaintStatus | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<WasteCategoryId | 'all'>('all');
   const [pending, setPending] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<{ url: string; caption: string } | null>(null);
+
+  const crewById = useMemo(() => {
+    const map = new Map<string, Crew>();
+    for (const c of crews) map.set(c.id, c);
+    return map;
+  }, [crews]);
 
   useEffect(() => {
     if (!lightbox) return;
@@ -49,16 +69,15 @@ export function ComplaintsTable({ initial }: { initial: Complaint[] }) {
     [rows, statusFilter, categoryFilter],
   );
 
+  // TODO(types): drop the cast after `pnpm exec supabase gen types typescript --linked`
+  // replaces packages/db/src/types.gen.ts.
+  const complaintsTable = () =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    createClient().from('complaints') as any;
+
   const updateStatus = async (id: string, status: ComplaintStatus) => {
     setPending(id);
-    const client = createClient();
-    // The generated Supabase types route this correctly once `supabase db push`
-    // + `pnpm db:types` run. Until then the manual stub in packages/db doesn't
-    // satisfy postgrest-js's exact GenericTable shape, so we loosen the cast
-    // for this single mutation.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const query = client.from('complaints') as any;
-    const { error } = await query.update({ status }).eq('id', id);
+    const { error } = await complaintsTable().update({ status }).eq('id', id);
     setPending(null);
     if (error) {
       toast.error(error.message);
@@ -66,6 +85,32 @@ export function ComplaintsTable({ initial }: { initial: Complaint[] }) {
     }
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
     toast.success('Статус оновлено');
+  };
+
+  const assignCrew = async (id: string, crewId: string | null) => {
+    setPending(id);
+    // The DB trigger `complaints_auto_assign` will flip status from 'new' to
+    // 'assigned' when a crew is set, so we don't need to do that client-side.
+    const { error } = await complaintsTable()
+      .update({ assigned_crew_id: crewId })
+      .eq('id', id);
+    setPending(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              assigned_crew_id: crewId,
+              status: crewId && r.status === 'new' ? 'assigned' : r.status,
+            }
+          : r,
+      ),
+    );
+    toast.success(crewId ? 'Бригаду призначено' : 'Призначення знято');
   };
 
   return (
@@ -91,6 +136,7 @@ export function ComplaintsTable({ initial }: { initial: Complaint[] }) {
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value as WasteCategoryId | 'all')}
           className="rounded-md border border-input bg-background px-3 py-1.5 text-xs"
+          aria-label="Фільтр за категорією відходів"
         >
           <option value="all">Усі категорії</option>
           {WASTE_CATEGORIES.map((cat) => (
@@ -110,7 +156,8 @@ export function ComplaintsTable({ initial }: { initial: Complaint[] }) {
             Нема скарг за поточними фільтрами.
           </CardContent>
         </Card>
-      ) : (
+      ) : null}
+      {filtered.length > 0 && (
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
@@ -120,6 +167,7 @@ export function ComplaintsTable({ initial }: { initial: Complaint[] }) {
                 <th className="px-3 py-2 text-left">Опис</th>
                 <th className="px-3 py-2 text-left">Створено</th>
                 <th className="px-3 py-2 text-left">Статус</th>
+                <th className="px-3 py-2 text-left">Бригада</th>
                 <th className="px-3 py-2 text-right">Дії</th>
               </tr>
             </thead>
@@ -155,17 +203,33 @@ export function ComplaintsTable({ initial }: { initial: Complaint[] }) {
                     </Badge>
                   </td>
                   <td className="px-3 py-2">
+                    {c.status === 'resolved' || c.status === 'rejected' ? (
+                      <span className="text-xs text-muted-foreground">
+                        {c.assigned_crew_id ? crewById.get(c.assigned_crew_id)?.name ?? '—' : '—'}
+                      </span>
+                    ) : crews.length === 0 ? (
+                      <span className="text-xs italic text-muted-foreground">
+                        додайте бригаду
+                      </span>
+                    ) : (
+                      <select
+                        value={c.assigned_crew_id ?? ''}
+                        disabled={pending === c.id}
+                        onChange={(e) => assignCrew(c.id, e.target.value || null)}
+                        className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+                        aria-label={`Призначити бригаду на скаргу ${c.description?.slice(0, 40) ?? c.id}`}
+                      >
+                        <option value="">— не призначено —</option>
+                        {crews.map((crew) => (
+                          <option key={crew.id} value={crew.id}>
+                            {crew.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
                     <div className="flex justify-end gap-1">
-                      {c.status === 'new' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={pending === c.id}
-                          onClick={() => updateStatus(c.id, 'assigned')}
-                        >
-                          Взяти в роботу
-                        </Button>
-                      )}
                       {(c.status === 'assigned' || c.status === 'in_progress') && (
                         <Button
                           size="sm"
@@ -175,6 +239,17 @@ export function ComplaintsTable({ initial }: { initial: Complaint[] }) {
                           Закрити
                         </Button>
                       )}
+                      {c.status === 'new' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={pending === c.id}
+                          onClick={() => updateStatus(c.id, 'rejected')}
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          Відхилити
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -182,6 +257,10 @@ export function ComplaintsTable({ initial }: { initial: Complaint[] }) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {totalPages > 1 && (
+        <Pagination page={page} pageSize={pageSize} totalPages={totalPages} />
       )}
 
       {lightbox && (
@@ -217,6 +296,45 @@ export function ComplaintsTable({ initial }: { initial: Complaint[] }) {
         </div>
       )}
     </div>
+  );
+}
+
+function Pagination({
+  page,
+  pageSize,
+  totalPages,
+}: {
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}) {
+  const linkClass = buttonVariants({ size: 'sm', variant: 'outline' });
+  const disabledLink = 'pointer-events-none opacity-40';
+  const prevDisabled = page <= 1;
+  const nextDisabled = page >= totalPages;
+  return (
+    <nav
+      aria-label="Сторінки скарг"
+      className="flex items-center justify-between gap-3 text-sm"
+    >
+      <Link
+        href={{ pathname: '/complaints', query: { page: page - 1 } }}
+        aria-disabled={prevDisabled}
+        className={`${linkClass} ${prevDisabled ? disabledLink : ''}`}
+      >
+        <ChevronLeft className="size-3.5" aria-hidden /> Попередня
+      </Link>
+      <span className="text-xs text-muted-foreground">
+        Сторінка {page} з {totalPages} · по {pageSize} на сторінку
+      </span>
+      <Link
+        href={{ pathname: '/complaints', query: { page: page + 1 } }}
+        aria-disabled={nextDisabled}
+        className={`${linkClass} ${nextDisabled ? disabledLink : ''}`}
+      >
+        Наступна <ChevronRight className="size-3.5" aria-hidden />
+      </Link>
+    </nav>
   );
 }
 
@@ -259,28 +377,3 @@ function PhotoThumb({
   );
 }
 
-function statusToLabel(status: ComplaintStatus): string {
-  return {
-    new: 'Нова',
-    assigned: 'Призначено',
-    in_progress: 'У роботі',
-    resolved: 'Вирішено',
-    rejected: 'Відхилено',
-  }[status];
-}
-
-function statusToVariant(
-  status: ComplaintStatus,
-): 'destructive' | 'warning' | 'success' | 'secondary' {
-  switch (status) {
-    case 'new':
-      return 'destructive';
-    case 'assigned':
-    case 'in_progress':
-      return 'warning';
-    case 'resolved':
-      return 'success';
-    case 'rejected':
-      return 'secondary';
-  }
-}

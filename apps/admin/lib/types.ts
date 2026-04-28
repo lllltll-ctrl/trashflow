@@ -12,8 +12,17 @@ export type Complaint = {
   description: string | null;
   status: ComplaintStatus;
   assigned_to: string | null;
+  assigned_crew_id: string | null;
   created_at: string;
   resolved_at: string | null;
+};
+
+export type Crew = {
+  id: string;
+  community_id: string;
+  name: string;
+  phone: string | null;
+  is_active: boolean;
 };
 
 export type Profile = {

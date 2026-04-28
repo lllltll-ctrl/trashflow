@@ -24,9 +24,32 @@ const STUB_RESULT: ClassifyResult = {
 };
 
 const FETCH_TIMEOUT_MS = 8_000;
+const ALLOWED_PROTOCOLS = new Set(['http:', 'https:']);
+
+function resolveServiceOrigin(): string {
+  const raw = process.env.ML_SERVICE_URL ?? 'http://localhost:8000';
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error(`ML_SERVICE_URL is not a valid URL: ${raw}`);
+  }
+  if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) {
+    throw new Error(
+      `ML_SERVICE_URL must use http(s); got "${parsed.protocol}" in ${raw}`,
+    );
+  }
+  return parsed.origin;
+}
 
 export async function classifyViaMl(file: File): Promise<ClassifyResult> {
-  const url = process.env.ML_SERVICE_URL ?? 'http://localhost:8000';
+  let origin: string;
+  try {
+    origin = resolveServiceOrigin();
+  } catch (error) {
+    console.error('[ml-proxy] invalid ML_SERVICE_URL — refusing to call:', String(error));
+    return STUB_RESULT;
+  }
   const apiKey = process.env.ML_SERVICE_API_KEY;
 
   const formData = new FormData();
@@ -36,7 +59,7 @@ export async function classifyViaMl(file: File): Promise<ClassifyResult> {
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${url}/classify`, {
+    const response = await fetch(`${origin}/classify`, {
       method: 'POST',
       body: formData,
       signal: controller.signal,

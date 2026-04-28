@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { classifyViaMl } from '@/lib/ml-proxy';
+import { sniffImageMime } from '@/lib/image-magic';
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
-const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,13 +28,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'missing file field' }, { status: 400 });
   }
 
-  if (!ALLOWED_MIME.has(file.type)) {
-    return NextResponse.json(
-      { error: `unsupported mime: ${file.type}` },
-      { status: 415 },
-    );
-  }
-
   if (file.size === 0) {
     return NextResponse.json({ error: 'empty upload' }, { status: 400 });
   }
@@ -43,6 +36,16 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: `file exceeds ${MAX_UPLOAD_BYTES} bytes` },
       { status: 413 },
+    );
+  }
+
+  // Magic-byte sniff: never trust `file.type` from the client.
+  const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  const sniffed = sniffImageMime(head);
+  if (!sniffed) {
+    return NextResponse.json(
+      { error: 'file is not a supported image (jpeg/png/webp)' },
+      { status: 415 },
     );
   }
 

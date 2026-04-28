@@ -1,13 +1,17 @@
 import { KpiCards } from '@/components/kpi-cards';
 import { ComplaintsFeed } from '@/components/complaints-feed';
+import { OpsSnapshotCards } from '@/components/ops-snapshot';
 import { getCurrentProfile, getKpiSnapshot, listComplaints } from '@/lib/queries';
+import { getOpsSnapshot } from '@/lib/ops-snapshot';
 
 export const metadata = { title: 'Огляд · TrashFlow Admin' };
+export const dynamic = 'force-dynamic';
 
 export default async function OverviewPage() {
-  const [profile, snapshot, recent] = await Promise.all([
+  const [profile, snapshot, ops, recent] = await Promise.all([
     getCurrentProfile(),
     getKpiSnapshot(),
+    getOpsSnapshot(),
     listComplaints(undefined, 20),
   ]);
 
@@ -20,7 +24,12 @@ export default async function OverviewPage() {
         </p>
       </header>
 
-      <KpiCards snapshot={snapshot} />
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Скарги</h2>
+        <KpiCards snapshot={snapshot} />
+      </section>
+
+      <OpsSnapshotCards snapshot={ops} />
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">Останні скарги (real-time)</h2>

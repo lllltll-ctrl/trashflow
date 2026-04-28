@@ -1,8 +1,24 @@
 import type { Metadata, Viewport } from 'next';
+import { Fraunces, IBM_Plex_Mono } from 'next/font/google';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 import { AnalyticsProvider } from '@/components/analytics-provider';
 import './globals.css';
+
+const fraunces = Fraunces({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['300', '400', '500'],
+  style: ['normal', 'italic'],
+  variable: '--font-fraunces',
+  display: 'swap',
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ['latin', 'latin-ext', 'cyrillic'],
+  weight: ['400', '500'],
+  variable: '--font-plex-mono',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'TrashFlow',
@@ -24,12 +40,16 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#16a34a',
+  themeColor: '#0E3A23',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="uk" suppressHydrationWarning>
+    <html
+      lang="uk"
+      suppressHydrationWarning
+      className={`${fraunces.variable} ${plexMono.variable}`}
+    >
       <body className="min-h-screen bg-background font-sans antialiased">
         <Suspense fallback={null}>
           <AnalyticsProvider>{children}</AnalyticsProvider>

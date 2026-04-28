@@ -1,13 +1,15 @@
 import Link from 'next/link';
-import { Home, ListChecks, LineChart, LogOut, Map, MapPin } from 'lucide-react';
+import { CalendarClock, Home, ListChecks, LineChart, LogOut, Map, MapPin, Route } from 'lucide-react';
 import { signOutAction } from '@/app/actions';
 import { getCurrentProfile } from '@/lib/queries';
 
 const navItems = [
   { href: '/' as const, label: 'Огляд', icon: Home },
   { href: '/complaints' as const, label: 'Скарги', icon: ListChecks },
-  { href: '/map' as const, label: 'Тепломапа', icon: Map },
+  { href: '/map' as const, label: 'Жива карта', icon: Map },
+  { href: '/routes' as const, label: 'Маршрути', icon: Route },
   { href: '/points' as const, label: 'Точки збору', icon: MapPin },
+  { href: '/schedule' as const, label: 'Графік вивозу', icon: CalendarClock },
   { href: '/analytics' as const, label: 'Аналітика', icon: LineChart },
 ];
 

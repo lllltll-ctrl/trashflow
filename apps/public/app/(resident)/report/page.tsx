@@ -1,27 +1,24 @@
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 import { ReportForm } from '@/components/report-form';
+import { PageHead } from '@/components/design/page-head';
+import { HeroBand } from '@/components/design/hero-band';
 
 export const metadata = { title: 'Скарга · TrashFlow' };
 
 export default function ReportPage() {
   return (
-    <main className="mx-auto max-w-xl space-y-6 p-4 pt-6">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
-        Назад
-      </Link>
-      <header className="space-y-2">
-        <h1 className="text-2xl font-bold leading-tight">Повідомити про звалище</h1>
-        <p className="text-sm text-muted-foreground">
-          Одне фото і геолокація — решту зробить диспетчер. Зауваження по сортуванню теж
-          приймаємо.
-        </p>
-      </header>
-      <ReportForm />
-    </main>
+    <>
+      <PageHead title="Скарга" backHref="/" />
+      <HeroBand
+        pale
+        eyebrow="Повідомити про звалище"
+        titleBefore="Знайшли "
+        titleEm="проблему"
+        titleAfter="?"
+        sub="Надішліть фото й координати — диспетчер надасть бригаду."
+      />
+      <div className="flex-1 overflow-y-auto px-5 pb-[120px]">
+        <ReportForm />
+      </div>
+    </>
   );
 }

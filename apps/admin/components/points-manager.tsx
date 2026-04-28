@@ -14,6 +14,8 @@ import {
   Spinner,
 } from '@trashflow/ui';
 import {
+  PRYLUKY_CENTER,
+  PRYLUKY_COMMUNITY_ID,
   WASTE_CATEGORIES,
   WASTE_CATEGORY_ICONS,
   WASTE_CATEGORY_LABELS_UA,
@@ -21,8 +23,6 @@ import {
 } from '@trashflow/db';
 import { createClient } from '@/lib/supabase/client';
 import type { CollectionPoint } from '@/lib/points';
-
-const PRYLUKY_COMMUNITY_ID = '00000000-0000-0000-0000-000000000001';
 
 type DraftPoint = {
   name: string;
@@ -35,8 +35,8 @@ type DraftPoint = {
 const EMPTY_DRAFT: DraftPoint = {
   name: '',
   address: '',
-  lat: '50.5942',
-  lng: '32.3874',
+  lat: PRYLUKY_CENTER.lat.toString(),
+  lng: PRYLUKY_CENTER.lng.toString(),
   accepts: new Set(['plastic']),
 };
 
@@ -75,12 +75,18 @@ export function PointsManager({ initial }: { initial: CollectionPoint[] }) {
     });
   };
 
+  // TODO(types): drop the casts after `pnpm exec supabase gen types typescript --linked`
+  // replaces packages/db/src/types.gen.ts. The hand-written shim doesn't
+  // fully satisfy postgrest-js's GenericTable contract for Update/Insert overloads.
+  const collectionPointsTable = () =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    createClient().from('collection_points') as any;
+
   const toggleActive = async (p: CollectionPoint) => {
     setBusyId(p.id);
-    const client = createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const query = client.from('collection_points') as any;
-    const { error } = await query.update({ is_active: !p.is_active }).eq('id', p.id);
+    const { error } = await collectionPointsTable()
+      .update({ is_active: !p.is_active })
+      .eq('id', p.id);
     setBusyId(null);
     if (error) {
       toast.error(error.message);
@@ -95,10 +101,7 @@ export function PointsManager({ initial }: { initial: CollectionPoint[] }) {
   const remove = async (p: CollectionPoint) => {
     if (!confirm(`Видалити точку "${p.name}"? Скасувати не можна.`)) return;
     setBusyId(p.id);
-    const client = createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const query = client.from('collection_points') as any;
-    const { error } = await query.delete().eq('id', p.id);
+    const { error } = await collectionPointsTable().delete().eq('id', p.id);
     setBusyId(null);
     if (error) {
       toast.error(error.message);
@@ -125,7 +128,6 @@ export function PointsManager({ initial }: { initial: CollectionPoint[] }) {
     }
 
     setBusyId(editingId ?? 'new');
-    const client = createClient();
     const payload = {
       name: draft.name.trim(),
       address: draft.address.trim() || null,
@@ -135,46 +137,85 @@ export function PointsManager({ initial }: { initial: CollectionPoint[] }) {
     };
 
     if (editingId) {
+      // Use the update_collection_point RPC: same server-side validation /
+      // role check / numeric coordinates as the create RPC. This drops the
+      // last client-side `SRID=4326;POINT(...)` WKT concatenation in the app.
+      const client = createClient();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const query = client.from('collection_points') as any;
-      const { error } = await query.update(payload).eq('id', editingId);
+      const rpc = client.rpc as any;
+      const { data, error } = await rpc('update_collection_point', {
+        p_id: editingId,
+        p_lat: lat,
+        p_lng: lng,
+        p_name: payload.name,
+        p_address: payload.address,
+        p_accepts: payload.accepts,
+      });
       setBusyId(null);
       if (error) {
         toast.error(error.message);
+        return;
+      }
+      const updated = (data ?? [])[0];
+      if (!updated) {
+        toast.error('Сервер не повернув оновлений запис');
         return;
       }
       setPoints((prev) =>
         prev.map((row) =>
           row.id === editingId
-            ? { ...row, ...payload, lat, lng, accepts: Array.from(draft.accepts) }
+            ? {
+                ...row,
+                name: updated.name,
+                address: updated.address,
+                accepts: updated.accepts as typeof payload.accepts,
+                is_active: updated.is_active,
+                lat: updated.lat,
+                lng: updated.lng,
+              }
             : row,
         ),
       );
       toast.success('Точку оновлено');
     } else {
+      // Use the create_collection_point RPC instead of a direct insert: it
+      // (1) resolves community_id server-side from the caller's profile —
+      // dropping the hardcoded PRYLUKY_COMMUNITY_ID, (2) builds the geography
+      // from numeric lat/lng instead of a client-concatenated WKT string,
+      // (3) validates lat/lng range and role inside the function.
+      const client = createClient();
+      // TODO(types): drop the cast after `pnpm exec supabase gen types typescript --linked`.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const query = client.from('collection_points') as any;
-      const { data, error } = await query
-        .insert({ ...payload, community_id: PRYLUKY_COMMUNITY_ID })
-        .select('*')
-        .single();
+      const rpc = client.rpc as any;
+      const { data, error } = await rpc('create_collection_point', {
+        p_lat: lat,
+        p_lng: lng,
+        p_name: payload.name,
+        p_address: payload.address,
+        p_accepts: payload.accepts,
+        p_schedule: null,
+      });
       setBusyId(null);
       if (error) {
         toast.error(error.message);
         return;
       }
-      const row = data as { id: string; created_at: string };
+      const row = (data ?? [])[0];
+      if (!row) {
+        toast.error('Сервер не повернув новий запис');
+        return;
+      }
       setPoints((prev) => [
         {
           id: row.id,
-          community_id: PRYLUKY_COMMUNITY_ID,
-          name: payload.name,
-          address: payload.address,
-          accepts: payload.accepts,
+          community_id: PRYLUKY_COMMUNITY_ID, // RPC scopes this server-side; UI keeps a copy for filtering.
+          name: row.name,
+          address: row.address,
+          accepts: row.accepts as typeof payload.accepts,
           schedule: null,
-          is_active: true,
-          lat,
-          lng,
+          is_active: row.is_active,
+          lat: row.lat,
+          lng: row.lng,
           created_at: row.created_at,
         },
         ...prev,

@@ -1,20 +1,11 @@
 import 'server-only';
 import { createClient } from './supabase/server';
+import { extractCoords, type GeoPoint } from './complaints-utils';
 import type { Complaint, KpiSnapshot, Profile } from './types';
 
-type GeoPoint = { type: 'Point'; coordinates: [number, number] };
 type ComplaintRow = Omit<Complaint, 'lat' | 'lng'> & {
   location: GeoPoint | null;
 };
-
-function extractCoords(
-  raw: ComplaintRow['location'],
-): { lat: number | null; lng: number | null } {
-  if (raw && Array.isArray(raw.coordinates) && raw.coordinates.length === 2) {
-    return { lng: raw.coordinates[0], lat: raw.coordinates[1] };
-  }
-  return { lat: null, lng: null };
-}
 
 export async function getCurrentProfile(): Promise<Profile | null> {
   const client = createClient();
@@ -49,6 +40,46 @@ export async function listComplaints(
     ...row,
     ...extractCoords(row.location),
   })) as Complaint[];
+}
+
+export type ComplaintsPage = {
+  rows: Complaint[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+/**
+ * Paginated complaints fetch — uses Postgres `range()` plus `count: 'exact'`
+ * so the table can render only one page at a time. This pairs with the index
+ * `complaints_community_feed(community_id, status, created_at desc)`.
+ */
+export async function listComplaintsPaginated(
+  page: number,
+  pageSize: number,
+  status?: Complaint['status'],
+): Promise<ComplaintsPage> {
+  const safePage = Math.max(1, Math.floor(page));
+  const safeSize = Math.max(1, Math.min(200, Math.floor(pageSize)));
+  const offset = (safePage - 1) * safeSize;
+
+  const client = createClient();
+  let query = client
+    .from('complaints')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(offset, offset + safeSize - 1);
+  if (status) query = query.eq('status', status);
+
+  const { data, error, count } = await query;
+  if (error) throw new Error(error.message);
+
+  const rows = ((data ?? []) as unknown as ComplaintRow[]).map((row) => ({
+    ...row,
+    ...extractCoords(row.location),
+  })) as Complaint[];
+
+  return { rows, total: count ?? 0, page: safePage, pageSize: safeSize };
 }
 
 export async function getKpiSnapshot(): Promise<KpiSnapshot> {

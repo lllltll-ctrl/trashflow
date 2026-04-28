@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <title>TrashFlow — Прилуки</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..500;1,9..144,400..500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="shared.jsx"></script>
+  <script type="text/babel" src="pages-1.jsx"></script>
+  <script type="text/babel" src="pages-2.jsx"></script>
+  <script type="text/babel" src="pages-3.jsx"></script>
+
+  <script type="text/babel" data-presets="react">
+    const TWEAKS = /*EDITMODE-BEGIN*/{
+      "lang": "ua"
+    }/*EDITMODE-END*/;
+
+    function App() {
+      const [page, setPage] = React.useState(() => localStorage.getItem('tf-page') || 'home');
+      const [lang, setLangState] = React.useState(TWEAKS.lang || 'ua');
+      const [editMode, setEditMode] = React.useState(false);
+
+      React.useEffect(() => { localStorage.setItem('tf-page', page); }, [page]);
+      React.useEffect(() => { document.documentElement.lang = lang === 'ua' ? 'uk' : 'en'; }, [lang]);
+
+      const setLang = (l) => {
+        setLangState(l);
+        window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { lang: l } }, '*');
+      };
+
+      // Tweaks protocol
+      React.useEffect(() => {
+        const onMsg = (e) => {
+          if (!e.data) return;
+          if (e.data.type === '__activate_edit_mode') setEditMode(true);
+          if (e.data.type === '__deactivate_edit_mode') setEditMode(false);
+        };
+        window.addEventListener('message', onMsg);
+        window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+        return () => window.removeEventListener('message', onMsg);
+      }, []);
+
+      const t = T[lang];
+      const go = (id) => setPage(id);
+
+      let Page = null;
+      if (page === 'home') Page = <HomePage go={go} />;
+      else if (page === 'classify') Page = <ClassifyPage go={go} />;
+      else if (page === 'points') Page = <PointsPage go={go} />;
+      else if (page === 'schedule') Page = <SchedulePage go={go} />;
+      else if (page === 'rules') Page = <RulesPage go={go} />;
+      else if (page === 'report') Page = <ReportPage go={go} />;
+
+      return (
+        <LangCtx.Provider value={{ lang, t, setLang }}>
+          <div className="viewport">
+            <div className="desktop-frame">
+              <h2>{lang === 'ua' ? 'Прилуки. Сортування без нервів.' : 'Pryluky. Sort without stress.'}</h2>
+              <p>{lang === 'ua'
+                ? 'Мобільний застосунок для мешканців: камера розпізнає сміття, мапа показує точки, графік нагадує про вивіз. Усе працює у браузері, без реєстрації.'
+                : 'A mobile app for residents: the camera recognises waste, the map shows drop-off points, the schedule reminds you of pickups. All in the browser, no signup.'}</p>
+              <div className="dot-cat">
+                {CATS.map(c => (
+                  <div key={c.id} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 13 }}>
+                    <span className="cat-dot" style={{ background: c.color, width: 10, height: 10 }} />
+                    <span style={{ color: 'var(--ink-soft)', fontWeight: 500 }}>{c[lang]}</span>
+                    <span style={{ color: 'var(--ink-mute)', fontFamily: 'var(--font-mono)', fontSize: 11, marginLeft: 'auto' }}>{c.id.toUpperCase()}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{
+                marginTop: 10,
+                padding: 14, borderRadius: 16,
+                background: '#fff', border: '1px solid rgba(14,58,35,0.08)',
+              }}>
+                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>
+                  {lang === 'ua' ? 'Сторінок у прототипі' : 'Prototype screens'}
+                </div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 42, lineHeight: 1, letterSpacing: '-0.03em', color: 'var(--green-deep)', marginTop: 4 }}>
+                  06
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--ink-mute)', marginTop: 4 }}>
+                  Home · Classify · Points · Schedule · Rules · Report
+                </div>
+              </div>
+            </div>
+
+            <div className="phone">
+              <StatusBar />
+              {Page}
+              <TabBar current={page === 'report' ? null : page} go={go} />
+            </div>
+          </div>
+
+          {editMode && (
+            <div className="tweaks-panel">
+              <h4>{lang === 'ua' ? 'Tweaks' : 'Tweaks'}</h4>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginBottom: 4 }}>
+                  {lang === 'ua' ? 'Мова' : 'Language'}
+                </div>
+                <div className="tweak-seg">
+                  <button className={lang === 'ua' ? 'on' : ''} onClick={() => setLang('ua')}>Укр</button>
+                  <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>Eng</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </LangCtx.Provider>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

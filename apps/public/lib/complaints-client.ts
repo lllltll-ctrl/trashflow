@@ -1,9 +1,8 @@
 'use client';
 
 import { clientEnv } from './env';
-import type { WasteCategoryId } from '@trashflow/db';
-
-const PRYLUKY_COMMUNITY_ID = '00000000-0000-0000-0000-000000000001';
+import { PRYLUKY_COMMUNITY_ID, type WasteCategoryId } from '@trashflow/db';
+import { resolveCommunityId } from './community-resolver';
 
 export type ComplaintDraft = {
   lat: number;
@@ -19,9 +18,29 @@ export type SubmittedComplaint = {
   created_at: string;
 };
 
-async function uploadPhoto(file: File): Promise<string> {
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-  const path = `${PRYLUKY_COMMUNITY_ID}/${crypto.randomUUID()}.${ext}`;
+export const ALLOWED_PHOTO_EXTENSIONS: ReadonlySet<string> = new Set([
+  'jpg',
+  'jpeg',
+  'png',
+  'webp',
+]);
+
+/**
+ * Extracts a safe extension from a user-supplied filename. Strips everything
+ * except `[a-z0-9]`, lowercases, and falls back to 'jpg' if the result isn't
+ * in the allowlist. A filename like `../etc/passwd.php.JPG` becomes 'jpg'.
+ *
+ * Exported so it can be unit-tested in isolation — the upload flow itself is
+ * hard to test without a Supabase Storage stub.
+ */
+export function safePhotoExtension(filename: string): string {
+  const raw = filename.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') ?? '';
+  return ALLOWED_PHOTO_EXTENSIONS.has(raw) ? raw : 'jpg';
+}
+
+async function uploadPhoto(file: File, communityId: string): Promise<string> {
+  const ext = safePhotoExtension(file.name);
+  const path = `${communityId}/${crypto.randomUUID()}.${ext}`;
 
   const uploadUrl = `${clientEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/complaint-photos/${path}`;
   const response = await fetch(uploadUrl, {
@@ -43,13 +62,16 @@ async function uploadPhoto(file: File): Promise<string> {
   return `${clientEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/complaint-photos/${path}`;
 }
 
-async function insertComplaint(body: {
-  photo_url: string;
-  lat: number;
-  lng: number;
-  description?: string;
-  category_id?: WasteCategoryId;
-}): Promise<SubmittedComplaint> {
+async function insertComplaint(
+  communityId: string,
+  body: {
+    photo_url: string;
+    lat: number;
+    lng: number;
+    description?: string;
+    category_id?: WasteCategoryId;
+  },
+): Promise<SubmittedComplaint> {
   const url = `${clientEnv.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/complaints`;
   const response = await fetch(url, {
     method: 'POST',
@@ -60,7 +82,7 @@ async function insertComplaint(body: {
       Prefer: 'return=representation',
     },
     body: JSON.stringify({
-      community_id: PRYLUKY_COMMUNITY_ID,
+      community_id: communityId,
       location: `SRID=4326;POINT(${body.lng} ${body.lat})`,
       photo_urls: [body.photo_url],
       description: body.description ?? null,
@@ -79,8 +101,11 @@ async function insertComplaint(body: {
 }
 
 export async function submitComplaint(draft: ComplaintDraft): Promise<SubmittedComplaint> {
-  const photoUrl = await uploadPhoto(draft.photo);
-  return insertComplaint({
+  // Resolve community by slug rather than baking the UUID into the bundle —
+  // this makes the public PWA portable to other hromadas via env var alone.
+  const communityId = (await resolveCommunityId()) ?? PRYLUKY_COMMUNITY_ID;
+  const photoUrl = await uploadPhoto(draft.photo, communityId);
+  return insertComplaint(communityId, {
     photo_url: photoUrl,
     lat: draft.lat,
     lng: draft.lng,

@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import __version__
 from .classifier import classifier
 from .config import settings
+from .image_magic import ALLOWED_IMAGE_MIMES, sniff_image_mime
 from .schemas import ClassifyResponse, HealthResponse
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -44,7 +45,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.allowed_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
@@ -72,20 +73,21 @@ async def healthz() -> HealthResponse:
     tags=["inference"],
 )
 async def classify(file: UploadFile) -> ClassifyResponse:
-    if file.content_type not in {"image/jpeg", "image/png", "image/webp"}:
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=f"unsupported media type: {file.content_type}",
-        )
     contents = await file.read()
+    if not contents:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="empty upload"
+        )
     if len(contents) > MAX_UPLOAD_BYTES:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail=f"file exceeds {MAX_UPLOAD_BYTES} bytes",
         )
-    if not contents:
+    sniffed = sniff_image_mime(contents[:16])
+    if sniffed is None or sniffed not in ALLOWED_IMAGE_MIMES:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="empty upload"
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="file is not a supported image (jpeg/png/webp)",
         )
 
     return classifier.classify(contents)

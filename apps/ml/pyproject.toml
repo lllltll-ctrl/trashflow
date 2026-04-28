@@ -35,6 +35,10 @@ minversion = "8.0"
 addopts = "-ra --strict-markers"
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "unit: pure-function unit tests (no FastAPI client, no model load)",
+    "integration: hits the FastAPI test client, may load model weights",
+]
 
 [tool.ruff]
 line-length = 100

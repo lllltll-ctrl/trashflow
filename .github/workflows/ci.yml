@@ -10,6 +10,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    name: Lint (ESLint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install pnpm
+        run: npm install -g pnpm@10.33.0
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Lint apps (only Next.js apps have ESLint configured)
+        run: pnpm --filter @trashflow/admin --filter @trashflow/public lint
+
   js:
     name: Typecheck + build (JS/TS)
     runs-on: ubuntu-latest
@@ -35,6 +51,23 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-ci-only
+
+  vitest:
+    name: Vitest unit tests (apps/public)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: js
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install pnpm
+        run: npm install -g pnpm@10.33.0
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Run vitest (public + admin)
+        run: pnpm --filter @trashflow/public --filter @trashflow/admin test
 
   e2e:
     name: Playwright E2E (apps/public)
@@ -177,3 +210,53 @@ jobs:
           apply supabase/seed.sql
           apply supabase/migrations/20260421000006_seed_pryluky_osm.sql
           apply supabase/migrations/20260421000008_demo_complaints.sql
+          apply supabase/migrations/20260422000001_tighten_cv_classifications_rls.sql
+          apply supabase/migrations/20260422000002_pickup_schedules.sql
+          apply supabase/migrations/20260422000003_crews_and_assignment.sql
+          apply supabase/migrations/20260422000004_create_collection_point_rpc.sql
+          apply supabase/migrations/20260422000005_audit_log.sql
+          apply supabase/migrations/20260422000006_update_collection_point_rpc.sql
+
+      - name: Smoke-test RLS scoping (anon must NOT read user data)
+        run: |
+          # The CI auth.uid() stub returns NULL, so anon SELECTs against tables
+          # that RLS gates as 'authenticated' must return zero rows even though
+          # we just inserted demo data above.
+          assert_anon_sees() {
+            local table="$1"
+            local expected="$2"
+            local label="$3"
+            local actual
+            actual=$(docker exec -i pg psql -U postgres -At <<SQL
+          set role anon;
+          select count(*) from public.${table};
+          SQL
+          )
+            echo "anon sees $actual rows in $table (expect $expected) — $label"
+            if [ "$actual" != "$expected" ]; then
+              echo "::error::RLS regression — $label"
+              exit 1
+            fi
+          }
+          assert_anon_sees complaints 0 "anon can read complaints"
+          assert_anon_sees profiles   0 "anon can read profiles"
+          # Positive controls: pickup_schedules and collection_points are
+          # public-read by design, so anon MUST see them.
+          rows=$(docker exec -i pg psql -U postgres -At <<'SQL'
+          set role anon;
+          select count(*) from public.pickup_schedules;
+          SQL
+          )
+          if [ "$rows" -lt "1" ]; then
+            echo "::error::pickup_schedules public-read policy is broken (anon sees 0 rows)"
+            exit 1
+          fi
+          rows=$(docker exec -i pg psql -U postgres -At <<'SQL'
+          set role anon;
+          select count(*) from public.collection_points;
+          SQL
+          )
+          if [ "$rows" -lt "1" ]; then
+            echo "::error::collection_points public-read policy is broken (anon sees 0 rows)"
+            exit 1
+          fi

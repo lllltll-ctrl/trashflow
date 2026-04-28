@@ -6,6 +6,8 @@ export type PointNearby = {
   address: string | null;
   accepts: string[];
   schedule: Record<string, string> | null;
+  is_buyback: boolean;
+  buyback_info: string | null;
   lat: number;
   lng: number;
   distance_m: number;

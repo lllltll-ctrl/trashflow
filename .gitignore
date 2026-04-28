@@ -85,3 +85,17 @@ pnpm-debug.log*
 # Misc
 *.tgz
 .cache/
+
+# Hackathon scratch artifacts that must not enter git from the repo root.
+# Leading '/' anchors to the repo root so PWA icons under apps/*/public/icons
+# (icon-192.png etc.) and test fixtures are unaffected.
+/admin-login-*.png
+/classify-*.png
+/home-*.png
+/points-*.png
+/report-*.png
+/trash_yolov8s.pt
+/trash_yolov8s.onnx
+/metrics.json
+/Pryluky_SaaS_MVP_Plan.docx
+/.playwright-mcp/

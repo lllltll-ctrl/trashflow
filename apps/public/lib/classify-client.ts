@@ -1,5 +1,3 @@
-'use client';
-
 import type { WasteCategoryId } from '@trashflow/db';
 
 export type ClassifyResult = {
