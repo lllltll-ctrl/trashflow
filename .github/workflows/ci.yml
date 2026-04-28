@@ -51,6 +51,9 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-ci-only
+          NEXT_PUBLIC_DEFAULT_COMMUNITY_SLUG: pryluky
+          ML_ALLOW_STUB: 'true'
+          ML_SERVICE_URL: 'http://localhost:8000'
 
   vitest:
     name: Vitest unit tests (apps/public)

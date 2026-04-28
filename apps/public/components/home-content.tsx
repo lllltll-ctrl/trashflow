@@ -298,12 +298,6 @@ function DesktopHeroBand({ communityName }: { communityName: string }) {
     >
       {/* Greeting + pickup info */}
       <div className="flex-1">
-        <p
-          className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-white/50 mb-1"
-          style={{ fontFamily: 'var(--font-mono)' }}
-        >
-          Добрий день · {communityName}
-        </p>
         <h1 className="text-[22px] font-extrabold tracking-[-0.02em] text-white leading-tight">
           Громада починається з тебе
         </h1>

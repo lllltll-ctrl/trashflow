@@ -1,18 +1,9 @@
 'use client';
 
 import type { ElementType } from 'react';
-import { Calendar, Trophy, Activity, MapPin, ShoppingBag, AlertTriangle, Recycle } from 'lucide-react';
+import { Calendar, Activity, MapPin, ShoppingBag, AlertTriangle, Recycle } from 'lucide-react';
 
-type LeaderEntry = { rank: number; name: string; score: number; highlight?: boolean };
 type ActivityEntry = { icon: ElementType; color: string; text: string; time: string };
-
-const LEADERBOARD: LeaderEntry[] = [
-  { rank: 1, name: 'Ніжин',     score: 9840 },
-  { rank: 2, name: 'Чернігів',  score: 8310 },
-  { rank: 3, name: 'Прилуки',   score: 7650, highlight: true },
-  { rank: 4, name: 'Бахмач',    score: 6100 },
-  { rank: 5, name: 'Борзна',    score: 4820 },
-];
 
 const ACTIVITY: ActivityEntry[] = [
   { icon: Recycle,       color: 'var(--green-light)',  text: 'Новий пункт прийому відкрито', time: '5хв тому'   },
@@ -76,66 +67,6 @@ export function DesktopRightPanel() {
             </span>
           ))}
         </div>
-      </section>
-
-      {/* ── Community leaderboard ───────────────────────────────────────── */}
-      <section
-        className="rounded-[18px] border border-[rgba(14,58,35,0.07)] bg-white p-4"
-        style={{ boxShadow: '0 2px 8px -2px rgba(14,58,35,0.06)' }}
-        aria-labelledby="leaderboard-heading"
-      >
-        <div className="flex items-center gap-2 mb-3">
-          <Trophy className="size-[15px] shrink-0" style={{ color: 'var(--yellow)' }} strokeWidth={2} />
-          <h2
-            id="leaderboard-heading"
-            className="text-[10.5px] font-semibold uppercase tracking-[0.18em]"
-            style={{ fontFamily: 'var(--font-mono)', color: 'var(--ink-mute)' }}
-          >
-            Рейтинг громад
-          </h2>
-        </div>
-
-        <ol className="space-y-1">
-          {LEADERBOARD.map(({ rank, name, score, highlight }) => (
-            <li
-              key={name}
-              className={[
-                'flex items-center gap-3 rounded-[10px] px-2.5 py-2',
-                highlight
-                  ? 'font-semibold'
-                  : '',
-              ].join(' ')}
-              style={
-                highlight
-                  ? { background: 'rgba(255, 210, 63, 0.12)', border: '1px solid rgba(255,210,63,0.3)' }
-                  : {}
-              }
-            >
-              <span
-                className="w-5 shrink-0 text-center text-[12px] font-bold"
-                style={{ color: rank <= 3 ? 'var(--yellow-shadow)' : 'var(--ink-mute)' }}
-                aria-label={`Місце ${rank}`}
-              >
-                {rank}
-              </span>
-              <span
-                className="flex-1 text-[13px]"
-                style={{ color: highlight ? 'var(--green-deep)' : 'var(--ink-soft)' }}
-              >
-                {name}
-                {highlight && (
-                  <span className="ml-1.5 text-[10px] opacity-60">(ваша)</span>
-                )}
-              </span>
-              <span
-                className="text-[12px] font-semibold tabular-nums"
-                style={{ color: highlight ? 'var(--green-mid)' : 'var(--ink-mute)' }}
-              >
-                {score.toLocaleString('uk-UA')}
-              </span>
-            </li>
-          ))}
-        </ol>
       </section>
 
       {/* ── Recent activity feed ────────────────────────────────────────── */}
