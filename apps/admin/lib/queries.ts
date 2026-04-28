@@ -1,4 +1,5 @@
 import 'server-only';
+import { cookies } from 'next/headers';
 import { createClient } from './supabase/server';
 import { extractCoords, type GeoPoint } from './complaints-utils';
 import type { Complaint, KpiSnapshot, Profile } from './types';
@@ -7,7 +8,20 @@ type ComplaintRow = Omit<Complaint, 'lat' | 'lng'> & {
   location: GeoPoint | null;
 };
 
+// Demo-mode mock profile — returned when tf_admin_demo cookie is set
+const DEMO_PROFILE: Profile = {
+  id: 'demo',
+  role: 'dispatcher',
+  community_id: null as unknown as string,
+  full_name: 'Диспетчер (демо)',
+  email: 'demo@trashflow.ua',
+} as unknown as Profile;
+
 export async function getCurrentProfile(): Promise<Profile | null> {
+  // Demo bypass: tf_admin_demo cookie → treat as dispatcher
+  const cookieStore = cookies();
+  if (cookieStore.get('tf_admin_demo')?.value) return DEMO_PROFILE;
+
   const client = createClient();
   const { data: session } = await client.auth.getUser();
   if (!session.user) return null;
