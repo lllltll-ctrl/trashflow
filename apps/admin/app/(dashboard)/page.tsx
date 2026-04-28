@@ -18,7 +18,7 @@ export default async function OverviewPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-bold">Огляд</h1>
+        <h1 className="text-xl font-bold sm:text-2xl">Огляд</h1>
         <p className="text-sm text-muted-foreground">
           {profile?.full_name ? `Вітаємо, ${profile.full_name}` : 'Вітаємо'} · Прилуцька громада
         </p>
@@ -33,7 +33,9 @@ export default async function OverviewPage() {
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">Останні скарги (real-time)</h2>
-        <ComplaintsFeed initial={recent} />
+        <div className="overflow-x-auto">
+          <ComplaintsFeed initial={recent} />
+        </div>
       </section>
     </div>
   );
