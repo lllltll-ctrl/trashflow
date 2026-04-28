@@ -121,3 +121,98 @@ body {
     box-shadow: none;
   }
 }
+
+/* ============================================================
+   Desktop sidebar — dark green gradient panel
+   ============================================================ */
+
+.tf-desktop-sidebar {
+  background: linear-gradient(180deg, #0E3A23 0%, #07231A 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Default nav link state */
+.tf-sidebar-link {
+  color: rgba(255, 255, 255, 0.6);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.tf-sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Active nav link: yellow bg + dark green text */
+.tf-sidebar-link--active {
+  background: #FFD23F;
+  color: #0E3A23;
+}
+.tf-sidebar-link--active:hover {
+  background: #FFE27A;
+  color: #0E3A23;
+}
+
+/* ============================================================
+   Desktop faux map animations (CSS-only, no Leaflet)
+   ============================================================ */
+
+@keyframes tf-truck-move-a {
+  0%   { transform: translate(0px, 0px); }
+  25%  { transform: translate(22px, -8px); }
+  50%  { transform: translate(40px, 4px); }
+  75%  { transform: translate(18px, 14px); }
+  100% { transform: translate(0px, 0px); }
+}
+@keyframes tf-truck-move-b {
+  0%   { transform: translate(0px, 0px); }
+  33%  { transform: translate(-16px, 12px); }
+  66%  { transform: translate(10px, 24px); }
+  100% { transform: translate(0px, 0px); }
+}
+@keyframes tf-truck-move-c {
+  0%   { transform: translate(0px, 0px); }
+  40%  { transform: translate(30px, -14px); }
+  80%  { transform: translate(-10px, -6px); }
+  100% { transform: translate(0px, 0px); }
+}
+@keyframes tf-truck-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(47, 165, 96, 0.5); }
+  50%       { box-shadow: 0 0 0 6px rgba(47, 165, 96, 0); }
+}
+
+.tf-faux-truck-a { animation: tf-truck-move-a 8s ease-in-out infinite; }
+.tf-faux-truck-b { animation: tf-truck-move-b 11s ease-in-out infinite; }
+.tf-faux-truck-c { animation: tf-truck-move-c 14s ease-in-out infinite; }
+.tf-faux-truck-dot {
+  animation: tf-truck-pulse 2s ease-in-out infinite;
+}
+
+/* ============================================================
+   Desktop layout: full-height three-column shell
+   ============================================================ */
+
+@media (min-width: 1024px) {
+  /* The resident layout root becomes a flex row that fills the viewport. */
+  .tf-desktop-shell {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    background: #F4F9F1;
+  }
+
+  /* Main scrollable column */
+  .tf-desktop-main {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+  }
+
+  /* Right sticky column */
+  .tf-desktop-right {
+    width: 320px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    border-left: 1px solid rgba(14, 58, 35, 0.07);
+    background: #FAF7EF;
+  }
+}
