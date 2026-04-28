@@ -284,53 +284,6 @@ function DesktopTopBar({
   );
 }
 
-// ─── Desktop HeroBand ────────────────────────────────────────────────────────
-
-function DesktopHeroBand({ communityName }: { communityName: string }) {
-  return (
-    <div
-      className="hidden lg:flex items-center justify-between gap-6 rounded-[22px] mx-6 mt-4 p-5"
-      style={{
-        background: 'linear-gradient(160deg, #0E3A23 0%, #185C38 65%, #0E3A23 100%)',
-        boxShadow: '0 8px 24px -8px rgba(14,58,35,0.3)',
-      }}
-      role="banner"
-    >
-      {/* Greeting + pickup info */}
-      <div className="flex-1">
-        <h1 className="text-[22px] font-extrabold tracking-[-0.02em] text-white leading-tight">
-          Громада починається з тебе
-        </h1>
-        <p className="mt-1 text-[13px] text-white/65">
-          Завтра вивозять пластик та скло — вул. Богдана Хмельницького
-        </p>
-      </div>
-
-      {/* Stats ring (decorative SVG) */}
-      <div className="relative shrink-0" aria-hidden>
-        <svg width="84" height="84" viewBox="0 0 84 84" fill="none">
-          {/* Background ring */}
-          <circle cx="42" cy="42" r="34" stroke="rgba(255,255,255,0.1)" strokeWidth="8" />
-          {/* Progress arc — 72% sorted */}
-          <circle
-            cx="42" cy="42" r="34"
-            stroke="#FFD23F"
-            strokeWidth="8"
-            strokeLinecap="round"
-            strokeDasharray="213.6"
-            strokeDashoffset="59.8"
-            transform="rotate(-90 42 42)"
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[18px] font-extrabold text-white leading-none">72%</span>
-          <span className="text-[9px] text-white/55 mt-0.5">сортує</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Desktop KPI tiles ───────────────────────────────────────────────────────
 
 function DesktopKpiTiles() {
