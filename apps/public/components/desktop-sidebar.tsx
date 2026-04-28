@@ -12,7 +12,6 @@ import {
   ShoppingBag,
   AlertTriangle,
   LifeBuoy,
-  BookOpen,
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
