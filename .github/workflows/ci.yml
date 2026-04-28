@@ -226,6 +226,8 @@ jobs:
           apply supabase/migrations/20260428000004_report_full_bin_rpc.sql
           apply supabase/migrations/20260428000005_fix_points_nearby_overload.sql
           apply supabase/migrations/20260428000006_real_collection_points.sql
+          apply supabase/migrations/20260429000001_support_messages.sql
+          apply supabase/migrations/20260429000002_demo_data.sql
 
       - name: Smoke-test RLS scoping (anon must NOT read user data)
         run: |

@@ -35,8 +35,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const TOOL_ITEMS: NavItem[] = [
-  { href: '/support', label: 'Підтримка', icon: LifeBuoy  },
-  { href: '/rules',   label: 'Довідник',  icon: BookOpen  },
+  { href: '/support', label: 'Підтримка', icon: LifeBuoy },
 ];
 
 export function DesktopSidebar() {
