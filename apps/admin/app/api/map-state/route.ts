@@ -32,6 +32,7 @@ export async function GET() {
 
   // ssr 0.5.2 typing seam — see lib/routes.ts for context.
   const supabase = createClient() as unknown as {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     from: (table: string) => any;
     rpc: (fn: string) => Promise<{ data: unknown; error: { message: string } | null }>;
   };

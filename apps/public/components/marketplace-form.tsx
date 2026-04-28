@@ -43,7 +43,7 @@ export function MarketplaceForm() {
       if (photoPreview) URL.revokeObjectURL(photoPreview);
       setPhotoFile(compressed);
       setPhotoPreview(URL.createObjectURL(compressed));
-    } catch (err) {
+    } catch {
       toast.error('Не вдалося обробити фото');
     } finally {
       setPhotoBusy(false);

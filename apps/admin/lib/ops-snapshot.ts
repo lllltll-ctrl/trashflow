@@ -26,6 +26,7 @@ const COMMUNITY_ID = '00000000-0000-0000-0000-000000000001';
 
 export async function getOpsSnapshot(): Promise<OpsSnapshot> {
   const supabase = createClient() as unknown as {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     from: (t: string) => any;
     rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
   };

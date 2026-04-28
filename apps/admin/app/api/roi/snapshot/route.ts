@@ -16,6 +16,7 @@ export async function GET() {
   }
 
   const supabase = createClient() as unknown as {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     from: (t: string) => any;
   };
 

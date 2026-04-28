@@ -296,7 +296,7 @@ export function ReportForm() {
                   className="mb-2 text-[11px] uppercase tracking-[0.18em] text-[color:var(--ink-mute)]"
                   style={{ fontFamily: 'var(--font-mono)' }}
                 >
-                  Категорія (необов'язково)
+                  {"Категорія (необов’язково)"}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {WASTE_CATEGORIES.map((cat) => {

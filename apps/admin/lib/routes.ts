@@ -8,6 +8,7 @@ import { optimizeRoutes, type Stop, type Vehicle } from './optimizer';
 // Cast only at this seam — the explicit return types on every exported function
 // keep the public surface fully typed.
 type SupabaseLoose = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
   rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 };

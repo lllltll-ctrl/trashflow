@@ -110,7 +110,7 @@ export default async function SupportPage() {
               <thead>
                 <tr className="border-b bg-muted/40">
                   <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Час</th>
-                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Ім'я</th>
+                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">{"Ім'я"}</th>
                   <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
                     Email
                   </th>
@@ -182,8 +182,8 @@ function EmptyState() {
     <div className="rounded-lg border bg-card px-8 py-16 text-center">
       <p className="text-lg font-semibold">Звернень ще немає</p>
       <p className="mt-1 text-sm text-muted-foreground">
-        Коли мешканці надішлють питання або відгуки через застосунок, вони з'являться тут. Форма
-        зворотного зв'язку доступна в публічному PWA у розділі «Контакти».
+        {"Коли мешканці надішлють питання або відгуки через застосунок, вони з’являться тут. Форма зворотного зв’язку доступна в публічному PWA у розділі «Контакти»."}
+
       </p>
     </div>
   );

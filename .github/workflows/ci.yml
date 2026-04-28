@@ -216,6 +216,16 @@ jobs:
           apply supabase/migrations/20260422000004_create_collection_point_rpc.sql
           apply supabase/migrations/20260422000005_audit_log.sql
           apply supabase/migrations/20260422000006_update_collection_point_rpc.sql
+          apply supabase/migrations/20260427000001_buyback_centres.sql
+          apply supabase/migrations/20260427000002_smart_waste_layer.sql
+          apply supabase/migrations/20260427000003_routing_rpcs_and_simulator.sql
+          apply supabase/migrations/20260427000004_driver_and_resident_rpcs.sql
+          apply supabase/migrations/20260428000001_public_trucks_and_complaint_routes.sql
+          apply supabase/migrations/20260428000002_marketplace.sql
+          apply supabase/migrations/20260428000003_marketplace_photos.sql
+          apply supabase/migrations/20260428000004_report_full_bin_rpc.sql
+          apply supabase/migrations/20260428000005_fix_points_nearby_overload.sql
+          apply supabase/migrations/20260428000006_real_collection_points.sql
 
       - name: Smoke-test RLS scoping (anon must NOT read user data)
         run: |

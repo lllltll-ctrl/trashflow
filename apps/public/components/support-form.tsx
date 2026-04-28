@@ -188,7 +188,7 @@ export function SupportForm() {
         {/* Name */}
         <div className="flex flex-col gap-1.5">
           <label className="text-[12px] font-semibold" style={{ color: 'var(--ink-mute)' }}>
-            Ваше ім'я
+            {"Ваше ім'я"}
           </label>
           <input
             type="text"
